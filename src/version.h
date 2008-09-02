@@ -1,0 +1,2 @@
+#define APLOT_BUILD 39
+#define APLOT_VERSION 20051213

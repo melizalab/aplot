@@ -1,0 +1,1791 @@
+1/14/95
+ widgets/Sono
+ widgets/Osc
+     fixed problem with x-axis GetPosition and GetRange: was calculating the wrong time values near the right of
+    the window, because my slope calculation involved integer math at a step in the calculation.  typecasting
+    to doubles fixed the problem. (basically, the slope was always an integer...)
+
+ widgets/Sono
+    fixed another problem with Sono only - when reporting the amplitude, for the same reason as above, I was
+    only reporting the amplitude of the zeroth frequency bin - my calculation of freqbin also involved integer
+    division at a point (fftsize / samplerate).  typecasting to doubles fixed the problem.
+
+    also optimized a little - was calculating pointer position twice in a critical inner loop.  Leftover from
+    when I removed #ifdefs around different mechanisms when I was tweaking for speed.
+
+ fft/fftmaster
+     fixed problem where, due to rounding error, the last fft window could sometimes extend past the sampledata.
+    EFENCE helped me find this.
+
+ aplot_osc
+ aplot_sono
+     I had removed a \n from the creation of the idstring in the osc code.  But I hadn't done this for the sono
+    code.  The result was that when I plotted a sono and an osc, the plotting of the osc would free the spectrograph
+    from memory.  I noticed that sometimes the sonograph would come up with weird overwritten areas at the beginning.
+    EFENCE verified the problem.  This bug was insidious.  And stupid.
+
+ aplot_ui
+     I rearranged the layout of the prop area.  It has three groupings now, a time area on the left, with the
+    start/stop, xrange, and zoom/unzoom buttons; a grayscale area, with a fftsize/fftolap combobox; and a
+    y-axis area for oscillographs.  This layout makes much more intuitive sense, and looks better too.
+
+    The comboboxes for fftsize and fftolap are active now.  The fftsize one actually seems to work, but the olap
+    does not.
+
+1/15/95
+ todo:
+    1. fix the FFTOLAP bug (EFENCE may be useful here)
+    2. implement a zoom/unzoom history
+    3. the range must always fit within the start/stop
+    4. strange bug: 2 groups, different files, sono and osc each.  after move/zoom, etc., sono's become same, osc remain different
+    5. allow multiple selected groups to be returned by find_selected_panel() : make groupnum a bitmask
+    6. set the entry when list elements change selection
+    7. clicking on a plot should select it in the panel list
+    8. reverse video prop fields when multiple groups are selected, and the field values differ
+    9. when no panels are selected, prop values should show/set global defaults which get used for new groups.
+
+ aplot_sono.c
+     The bug from yesterday had NOT been saved somehow.  I think perhaps that I mistakenly had this file in two editors at
+    the same time...  In any event, it is now fixed.  This might explain TODO#4...
+
+ aplot_ui.c
+     FFTOLAP is now fixed.  The problem was that I was actually setting the fftsize instead of the overlap.  Incidentally,
+    I think the FFT code crashes REAL badly if asked to do a 50 point FFT.  Don't do that... :->  It crashed UPS, regardless
+    of whether or not I used EFENCE.  In any event, it now works.
+
+ sigclass.c
+    I wasn't able to do fftolap == 0, because sigclass checked if it was zero, and set it to 50.  Now, it sets it to 50
+    if it is asked to do 100 (which is an illegal overlap).  In other words, zero is now an acceptable overlap, while 100
+    is not.
+
+ aplot_ui.c
+     I added 90,80,etc. to the possible FFTOLAP options...  Also, on a separate note, I can't seem to crash aplot... We'll
+    see how long this lasts...
+
+1/21/95
+ todo:
+    1. set the entry when list elements change selection
+    2. reverse video prop fields when multiple groups are selected, and the field values differ
+    3. pan/scan buttons
+
+ aplot_sono.c
+ aplot_osc.c
+     sono_set and osc_set now are hardcoded to set the XmNvalues that the graphs support, instead of being
+    passed an ArgList.
+
+ aplot_*.c
+     all the file-specific fields are now in groupdata.  This means samplerate, fft*, xmin, xmax, ymin, ymax, gsmin, gsmax,
+    etc.  Many files had to be modified to support this.
+
+ aplot_ui.c
+     I now support multiple panellist selections cleanly.  What I did was to implement a subtree of the paneldata tree.
+    Whenever update_selection_tree() is called, it sets up the subtree.  This can easily be checked to see what
+    panels are selected, what is the first group selected, etc.  Many functions modified to support this.
+
+ aplot_panel.c & aplot_ui.c
+     panel_set has been drastically modified.  It now accepts a settingsdata structure which contains all the settings,
+    and a mask that indicates which fields of that structure are being set (much like the GC stuff with X).  This way,
+    multiple things can be set all at once for a single panel.  Deciding whether to call the display function or
+    the set function for a plot is also automatic now.  panel_set() is now much, much cleaner.
+
+    panel_addplotgroup() has been updated to be cleaner also.  If a plot creation fails, then that plot type is
+    removed without affecting other plot types that may have succeeded.  The created group only indicates the plots
+    that actually succeeded.
+
+ aplot_ui.c
+     I now support some defaults - when nothing in the panellist is selected, any changes to the props will be stored
+    in a defaultsdata structure.  These props will be shown whenever the list subsequently becomes emptied.
+
+    declare all the callbacks static. (except for the cb_sono/osc_get_position/range() Xad widget callbacks)
+
+    clicking with the left mouse button now selects a group in the panel list, if it isn't already selected...
+
+    implemented a zoom/unzoom history for each group.  The unzoom button is now enabled.
+
+ aplot_panel.c
+     there was a bug wherein the default xmin/xmax values were ignored when opening a group for the first time.  This
+    was because I was setting group->xmin, but not group->start...  I should figure out what I want the difference
+    to be ...
+
+    I've also made sure that the xrange remains bounded by the start/stop times.
+
+ aplot_osc.c
+ aplot_sono.c
+     the XmNxmin and XmNxmax are now relative to the start and stop.  Thus, zooming should now work correctly when
+    partial files are read in, not beginning at time = 0.
+
+ aplot_*.c
+     I've removed groupdata.xmin and groupdata.xmax.  Now, I must use start and stop only.
+
+ aplot_ui.c
+     I now set the entry whenever the panel list changes selection.
+
+1/21/95
+ todo:
+    1. reverse video prop fields when multiple groups are selected, and the field values differ
+    2. add postscript output support :->
+    3. support playback of a sound range
+    4. the xrange fields should start off showing the start and stop times of the entire window
+       if they don't have a range (ie: they shouldn't ever show 0/0
+    5. the start/stop fields should have 0/0 if the user wants everything loaded.  This is different
+       from having the length of the current buffer, because the fields will be maintained upon
+       loading the next entry
+    6. there is a problem with the 'click to select' feature when multiple panels are opened.
+    7. add keyboard shortcuts!! (esp. for zoom/unzoom/panleft/panright)
+    8. there is a bug with zooming: I can't zoom if only the sonograph is up.
+    9. there is a bug with the size of the next loaded entry.  Basically, it is forced to the
+       same size as the previous entry.
+    10. there must be a bug in the pcmseq2 file handling: it gets slower as you get farther into
+       the file.
+
+ aplot_ui.c
+
+     I've added the pan/scan buttons, and they seem to work.  However, they won't cause additional data to
+    reload...  When the window is moved to the edge of the loaded data, instead of attempting to load more
+    data, it just unzooms to show the whole dataset.
+
+
+2/4/95
+ todo:
+    1. reverse video prop fields when multiple groups are selected, and the field values differ
+    2. add postscript output support :->
+    3. support playback of a sound range
+    4. the xrange fields should start off showing the start and stop times of the entire window
+       if they don't have a range (ie: they shouldn't ever show 0/0
+    5. the start/stop fields should have 0/0 if the user wants everything loaded.  This is different
+       from having the length of the current buffer, because the fields will be maintained upon
+       loading the next entry
+    6. there is a problem with the 'click to select' feature when multiple panels are opened.
+    7. add keyboard shortcuts!! (esp. for zoom/unzoom/panleft/panright)
+
+ sigclass.c
+ 
+     I've fixed a glaring bug: everytime I set the start, stop, fftstuff, etc., I was closing and
+    reopening the pcmseq2 file...  What this meant, was that I was doing this EVERY TIME I CHANGED
+    ENTRY!!!!  That's why things got slow near the end of pcmseq2 files - I was reopening and
+    stepping through every entry...  Very, very bad.  It was fixed by saving context more often...
+    Now, things are MUCH quicker with pcmseq2 files.
+ 
+     Another bug fix: after reading the last entry of a pcmseq2 file, the sigObj->current_entry was
+    kept set to the last entry.  Now it says (lastentry + 1), so that when the routine is called
+    again, this time to go back and read the last entry, it knows that it has to rewind a bit
+    (using the cache), since it isn't at the beginning of the last entry.
+
+     Yet another bug fix: I now use the cache anytime I can: previously, if I had read through the
+    file, then rewound, and then skipped forward by more than one entry, I ignored the cache.
+    This was because I only used the cache if the desired entry was less then the current entry.
+
+ aplot_sono.c
+ sigclass.c
+
+     To fix the zooming problem (doesn't work w/o osc), I needed to set the group->stop after
+    displaying an image, based on what is returned by the sigObj in specdata.  However, I
+    don't want to calculate the number based on numtimebins, overlap, fftsize, so instead,
+    I added a numsamples field, and made generic_getspec fill spec_pcmdatacount with a copy of
+    the pcmdatacount field filled by _getpcm.  Any non-generic getspec (like loading from a
+    file) will have to fill this field, but it can be calculated via fftsize, etc.  (I didn't
+    want any possible discrepancy with what was loaded in the Oscillo). 
+
+ aplot_ui.c
+ aplot_panel.c
+
+    I've fixed the problem with changing entries: only the size of the previous entry was
+    loaded.  The fix was to implement a 'load all' toggle next to the pan right button.  When
+    this is active, the values in the loaded time range are ignored when loading the next
+    entry.
+
+    Also, the time range values (actually, all the props) are now updated pretty when they
+    should be: meaning that they almost always actually say what they mean.  Examples of
+    where this has changed are: when adding a new plot, after reading a new entry, etc.
+
+2/28/95
+    New plot types: rast, psth
+
+3/3/95
+    New plot type: labels...
+
+3/26/95
+ fftmaster.c
+
+    I've fixed a longstanding bug that read invalid memory when creating the last timebin
+    of fft data.
+
+ aplot_ui.c, aplot_panel.c, aplot_<plot>.c
+
+     I've introduced a save button.
+
+ Sono.c
+
+     I've finally fixed the problems with grids...
+
+ aplot_ui.c
+
+     Therefore, I've now added XGrid and YGrid toggle buttons...
+
+3/28/95
+ aplot_ui.c
+
+     Added a filename field for the save button.
+
+5/12/95
+ Osc.c, Label.c
+
+     fixed colors to black on white bg.
+
+5/13/95
+ aplot_ccor.c
+
+    New plot type: Does an autocorrelation.
+    wsize, tau, taustep = 1, 50, 1 for now.
+    calculates using same algorithm (and code) as xcor.c (the xcor CMEX matlab
+     function)
+
+7/??/95 (I think)
+    I've greatly reduced the amount of screen real-estate used by aplot's
+    user-interface.  I didn't really get rid of anything; just reorganized
+    it.  It is now quite reasonable.
+
+10/29/95 (I think)
+     I've written Imakefiles for all the directories (except the plotwidget
+    ones).  Building aplot is now as simple as { xmkfm; make } on several
+    different systems.
+
+    Also, around this time, I fixed several sigclass bugs that were resulting
+    in crashes.  The problem showed up when both a sono and osc were displayed
+    on the same data - the sigclass would free the data for some reason, and
+    osc would still use it (for example).  I'm pretty sure that some of
+    these types of bugs still exist... :-<   I think the solution I will
+    take is to completely rewrite the sigclass code - I want to write a set
+    of routines like pcmread, pcmwrite, pcmioctl, pcmseek, toeread, toewrite,
+    etc. that are modeled after the Unix device driver sematics.  The grand
+    unified, pseudo-object-oriented sigclass code is getting too twisted.
+
+12/18/95
+ aplot_ui.c
+ aplot_osc.c
+ aplot_sono.c
+
+     Many, many changes.  I had earlier implemented a play function on the
+    Digital Unix version of aplot that actually opened a pipe to an rsh
+    command to a pipe of sox and cat > /dev/audio on data.  I have left
+    the play button (next to the save button) but disabled the hack
+    function for now (until we get some sound cards...)  The method is
+    temporarily to call plot_save with a null filename ptr.  This is
+    silly, so I will later create plot_play functions for all the plot
+    types.
+
+    Okay. Now, the meat of the changes:  I reimplemented the oscillograph
+    and the sonograph.  Now, I no longer use a widget - rather, the code
+    is implemented within aplot_osc.c and aplot_sono.c, and the XmDrawingArea
+    widget is used.  The code is MUCH, MUCH, cleaner.  I've improved the
+    sonograph rendering code (sped it up even more, simplified it, rid it
+    of kludges, etc.)
+
+    With these new re-implementations, we now have switchable Axes!! With
+    automatic tick marks and labels, etc.  :->.  It is very neat.  Right
+    now, there is no user-interface access to switching the axes on/off,
+    but that'll come soon (it is hardwired to always show the axes.)  The
+    rendering code has been greatly cleaned up - so it now expects that there
+    are portions of the window it can't draw to, etc.  Very flexible.  Also,
+    it will now be VERY easy to add postscript versions of the rendering
+    code and finally implement the plot_print() functions.
+
+    A big new feature is the presence of range marks (cursors, etc.)  For
+    both the osc and sono, when you click with the middle button, you get
+    a vertical mark, and as you drag, a second mark is dragged.  Upon release,
+    a region is defined with two marks.  This is implemented pretty cleanly -
+    it is fast, doesn't produce artifacts, is VERY intuitive from a user's
+    perspective, etc.   At the moment, however, I haven't bothered to
+    communicate the range information with aplot_ui.c, so the automatic
+    zooming is not functional.  This will be fixed soon.
+
+    I'm now using John L. Cwikla's XCC code (from his AppPlusShell stuff
+    on ftp.x.org).  This let's aplot's sonograph be displayed theoretically
+    on any visual.  I have verified this for monochrome, and the typical
+    8bit pseudocolor.  I expect it will work for TrueColor, etc. also.
+
+1/4/96
+ aplot_panel.c
+ aplot_osc.c
+ aplot_sono.c
+
+    Range selection (setting start and stop marks of a range by clicking and
+    dragging with the mouse) now affects all selected plots.  This works
+    somewhat like ESPS's range selection.  It is really pretty neat.  Also,
+    some cleanup of the event handling code.
+
+    Next: add popup menus to the plots, with axes toggles, etc.  The osc menu
+    will allow setting the yrange.  The sono one will allow setting the fft
+    size, range, etc.  Perhaps add the capability to define styles, including
+    a default style.  These styles can be saved to disk, and applied easily
+    from the menu.
+
+1/9/96
+ aplot_panel.c
+ aplot_osc.c
+ aplot_sono.c
+
+    Added popup menus to the osc and sono plots.  Also handle keyboard events.
+    Ctrl-x and y now toggle the x/y axes; ctrl-X,Y now toggle the x/y grids
+    on the sono.
+
+1/11/96 (this day's entry copied from dataio/HISTORY)
+ pcmio.c
+ pcmio.h
+ pcmraw.c
+ pcmfix.c
+ pcmseq.c
+ pcmfeasd.c
+     created.  I've kept the pcmseq2_read.[ch] from the sigclass code, but
+    other than that, this is all new stuff.  What does it do?  Right now,
+    it presents the following interface functions:
+        pcm_open()
+        pcm_seek()
+        pcm_read()
+        pcm_close()
+    and allows one to read from raw pcm files, .pcm_fix, .pcm_seq2, or ESPS
+    .sd files, without ever worrying about what the file format is.  It
+    supports the notion of a single file containing multiple entries (for
+    .pcm_seq2 files), and can be told which entry to obtain via pcm_seek()).
+    Most nicely: it doesn't allocate memory for the data.  pcm_read() maps
+    an entire entry into memory from a file (in the case of feasd and pcmseq2
+    files, this is necessarily from a temporary file).  The data is returned
+    as a read-only memory block containing all of the samples; they are
+    actually only read in on reference...
+
+    TODO: add a pcm_write() function; add pcm_stat() to support obtaining
+    stuff like samplerate, etc.; add pcm_ctl() to allow various settings,
+    including the option of forcing the allocation of memory, etc.
+    Add MATLAB file support.  Add support for common sound file formats
+    (like .wav, .au, etc.)  Add Voxware support for audio card support
+    (under Linux).  Also, I plan to write toeio, which will support toe_lis
+    files; and lblio, which will support toe_lis files or label files.
+
+1/27/96
+ pcmio.c
+ pcmio.h
+ pcmraw.c
+ pcmfix.c
+ pcmseq.c
+ pcmfeasd.c
+     made lots of changes to everything.  Haven't tested any of them :->.  The
+    change include: 1) added pcm_stat(), pcm_ctl().  2) w/ pcm_stat(), can
+    now tell pcmio to use malloc() or mmap() for memory allocation.  3) With
+    pcm_stat() can obtain the number of samples in a given file/entry.
+    4) Various code cleanups.
+
+    Some of the cleanup involves the following: for pcmraw and pcmfix, I don't
+    read anything until actually asked... (before I was doing all the work in
+    pcm_open()).  Return values are a bit more consistent.  Check to see if
+    files were opened RDONLY before actually read()ing or stat()ing, etc.
+
+    TODO: the pcmfix code actually mmap()'s the file even if the data is the
+    wrong bytesex.  This is not the behavior I want.  I don't want the client
+    program to have to worry about bytesex at all.  The pcmseq code, for example,
+    does the necessary byte sex conversions automatically.  The solution is to
+    check if my bytesex is big-endian, and if so, convert.  If I'm using malloc,
+    I can convert after reading.  If I'm using mmap(), I'll have to do the whole
+    temporary file thing...
+
+    TODO: compile for VMS.  This will mean figuring out VMS equivalents for mmap(),
+    etc.
+
+    Implemented pcm_write().  I've implemented it for pcmseq, pcmraw, and pcmfix,
+    but not pcmfeasd files.  The pcmseq implementation was obviously the hardest,
+    but I wound up taking the code out of SABER.  The issue of the OS_SPECIFIC_SKIP
+    is unresolved (actually, I haven't tested any of the stuff I've written today).
+    Also, I made numerous changes to _ctl and _stat to better support writing.
+    The pcmfix implementation still has an unresolved bytesex conversion issue -
+    only because I'm tired right now.
+
+    I have now tested pcm_write().  It works.  Because it pads entries (almost
+    always), I have gone and modified the pcmseq2_read() code to read the real
+    (non-padded) size of a pcmseq2 entry.  I've also tested this.  So!!!  Now,
+    I can finally say that my handling of pcmseq2 files is pretty excellent.
+    Note: I have also tested the creation of multiple entries, etc.  I took a
+    pcm_seq2 from fred, read and wrote each entry into a new pcm_seq2 file
+    using the new pcmio code, and then used the old dumppcm to extract each
+    entry from the original file, and a new dumppcm that uses pcmio to extract
+    each entry from the new file.  The two sets of files(entries) were identical
+    (in size, and according to diff).  Thus, I feel pretty good about this code.
+
+    I still have to test the PCMIOMALLOC stuff, though.  Informally, I'd have to
+    say that the pcmio code crawls when it comes to reading and writing from
+    pcm_seq2 files with PCMIOMMAP.  Of course, it is doing lots of stuff (it is
+    pcmconverting, writing into a temp file with paging hardware, reading from
+    that file (with paging hardware), pcmconverting it, and then writing.  Using
+    malloc will avoid the temp file, and the paging.  Okay, now I've used the
+    MALLOC stuff.  It works, but I think the slowness problem is really with the
+    writing.  It seems to have to do with making hundreds of thousands of small
+    unbuffered I/O calls.  Maybe I should use buffered I/O for output!!!
+
+    Okay, now I'm doing buffered output (fopen instead of open, etc.)  WOW - what
+    a difference.  Here's some benchmarking numbers:
+
+    NOBUFFOUT + MMAP        13.710u 142.710s 2:54.28 89.7% 0+272k 32+631io 23pf+0w
+    NOBUFFOUT + MALLOC        12.830u 139.460s 2:44.61 92.5% 0+473k  1+ 67io  0pf+0w
+    BUFFOUT + MMAP            10.650u   2.710s 0:23.39 57.1% 0+275k 60+617io 46pf+0w
+    BUFFOUT + MALLOC        10.210u   1.490s 0:13.19 88.7% 0+467k 46+ 71io 46pf+0w
+
+    What is clear here is that using buffered output is an incredible win (a real
+    no-brainer), and that using malloc saves a significant (25-50%) amount of time
+    from the reading.  It does, however, increase the memory usage (from 275 to 475K).
+
+    The pcm_seq file I was using had no entries larger than 440k (it had 6 entries).
+    I think that defaulting to mmap usage for entries larger than about 2M is reasonable,
+    while using malloc for smaller ones will help speed things along for the majority of
+    cases.
+
+    I've added pcm_ctl() request flags PCMIOGETSIZE, PCMIOGETSR, PCMIOGETENTRY to use
+    as shortcuts to using pcm_stat().
+
+    TODO: a portable way to get at the date_time field within pcm_seq2 entries...
+
+    NOTE: okay, so in order to write pcm_seq2 files: do the following:
+
+        PCMFILE *fp;
+        short *data;
+
+        fp = pcm_open("aa.pcm_seq2", "w");
+        pcm_seek(fp, 1);                    /* Not strictly necessary, but... */
+        pcm_write(fp, data, 200);
+        pcm_write(fp, data, 1000);
+        pcm_write(fp, data, 23);
+        pcm_seek(fp, 2);
+        pcm_write(fp, data, 50000);
+        pcm_write(fp, data, 100);
+        pcm_close(fp);
+
+    This creates a 2 entry pcm_seq2 file.
+
+    To read such a file:
+
+        PCMFILE *fp;
+        int nsamples;
+        short *data;
+
+        fp = pcm_open("aa.pcm_seq2", "r");
+        pcm_seek(fp, 1);                    /* Not strictly necessary, but... */
+        pcm_ctl(fp, PCMIOGETSIZE, &nsamples);
+        if (nsamples > 1000000)
+            pcm_ctl(fp, PCMIOMMAP, NULL);
+        else
+            pcm_ctl(fp, PCMIOMALLOC, NULL);
+        pcm_read(fp, &data, &nsamples);
+
+        /* Do stuff with the data here */
+
+        pcm_close(fp);
+
+    IMPORTANT NOTE: you can't close the file until you have finished using the data.  If you
+    want to access the data after closing the file, you must first copy it and use the copy
+    instead!!!!!
+
+    Also, all of these commands (except pcm_close) return an int with a value of 0 on success
+    or -1 on failure.  Checking the return value is a good idea!!   Especially checking the
+    value of pcm_seek() is important, because the particular file format may not support seeks.
+
+2/1/96
+ aplot,widgets/ComboBox,etc
+    Added Imakefiles for plotutil and plotwidget directories.
+
+    Motif2.0+ machines use slightly newer version of the free ComboBox widget.
+    I tried using the built-in ComboBox, but it was actually crashing the
+    machine (infinite memory consuming loop, within the Red Hat Motif2.0
+    ComboBox code).  Because Motif2.0 already has XmComboBox, I renamed the
+    ComboBox to KomboBox, along with all the important internal references.
+    However, the slightly newer version (1.32 vs 1.31) crashes on data and
+    lor, so I'm now using the old ComboBox on everything but Linux, where I
+    use the new KomboBox.  Lots of #ifdef's in aplot_ui.c
+
+    In aplot_ui.c, I redid the handling of the panel list.  Now, I keep an
+    internal copy of the contents of the list; I store the ASCII strings
+    along with flags to tell me what lines are selected.  Whenever aplot
+    or the user changes something in the list, the internal copy is kept
+    up-to-date automatically.  This allowed me to redo the function
+    update_selection_tree(), making it considerably more streamlined and
+    less kludgy.  The motivation for this is that the old technique kept
+    crashing on Linux with Motif2.0.  Since I'll probably never know what
+    the problem was, I'll blame it on the Red Hat Motif2.0.  In any event,
+    the changes result in my not querying the XmList anymore - whenever
+    I want to know what panels/groups are selected, I just ask my internal
+    list - which makes things quite a bit simpler (no more converting to
+    and from the stupid XmStrings).  By the way - the problem had to do
+    with the first four bytes of the string getting corrupted after entering
+    it into the list.
+
+    I wrote aplot_label.c.  Therefore, I no longer need my Label.c widget.
+    It behaves like the osc and sono - popup menu and all.  It is visually
+    a bit nicer than before, but mostly the same.  Once I redo the psth
+    and rast plots, I'll be able to dump the plotwidgets...  The label
+    widget, for now, is still read-only.  When I figure out if there is
+    something wrong with my event-handling, I'll update it to allow label
+    entry by the user, and saving to label files.  Also, I'm still using
+    the sigClass - which needs to go soon now.
+
+    Due to the changes above, I have now successfully compiled in Linux
+    for Red Hat Motif2.0.  It is nice and fast, and seems quite reliable.
+
+    Got rid of the xgrid/ygrid toggle buttons from aplot_ui.c.  Also, I
+    deleted the sono_position, sono_range, osc_position, osc_range, 
+    lbl_position, and lbl_range functions from aplot_ui.c
+
+    I created a grand Imakefile - and cleaned up a lot for the individual
+    Imakefiles.  Building this whole thing is now as simple as:
+        xmkmf
+        make Makefiles
+        make
+
+    I fixed a bad weirdness in plotwidgets/clipping.c - clipBelow was using
+    *int parameters when it was being passed *float parameters... I changed
+    it to use *int.  This is an excellent example of why people really
+    should use prototypes.  He didn't, and I only found this when I added the
+    prototypes...
+
+ todo:
+     1. stop using sigclass.  Delete sigclass, actually.  Replace it with
+        pcmio, toeio, lblio.  This means I need to whip up a toeio and
+        lblio library, and also calculate the FFT in aplot_sono.c
+    2. reimplement aplot_psth.c and aplot_rast.c, in the same spirit as the
+        other plots.  This will allow me to dump the plotwidget package...
+    3. Remove the fftsize/fftolap/psthbindur comboboxes.  These should be
+        relegated to the popup menus of the associated plots.  This will
+        allow me to dump the ComboBox/KomboBox code, and simplify the
+        user interface.
+    4. Get rid of more stuff from the UI - like the zoom buttons; the zoom
+        range textfields.
+    5. Probably reimplement the different plots as widgets.  This may sound
+        like a step back to what I was doing before, but I think that the
+        new code will make for much better widgets.  Plus, this may be the
+        way to fix the event handling weirdness-es.
+    6. Add support for sound playback.  Now that we have Linux machines with
+        soundcards that support raw 16bit 20kHz, this should be easy.
+    7. Compile the sucker on fred again.
+    8. Add write and edit capability to the lbl plot.  Only do this if you can
+        make it a functional replacement for the ESPS/waves xlabel program.
+        (which we can't get for Linux, hence the motivation).  Besides, I
+        don't like xwaves.
+    9. Possibly add a horizontal scroll-bar to the top of every panel.  This
+        can provide xwaves-like scrolling for whatever plots are selected.
+        I think this would be very easy to add...
+    10. Add postscript output for the different plots...  Not hard once I
+        relearn postscript.
+
+2/2/96
+ aplot_osc.c
+    Worked around the display problem on the XFree86 S3 servers (the linux
+    boxes).  The problem was that marks are drawn as LineOnOffDash - which
+    was leaving display artifacts on the linux boxes.  So, now the linux
+    versions are compiled to use LineSolid.  This doesn't fix the problem
+    of running remote (Sun or Alpha) aplots displaying on linux - for
+    that, I'd need to replace LineOnOffDash for everyone, and I don't want
+    to do that just yet.
+
+2/5/96
+ pcmseq2_read.c
+ pcmseq2_read.h
+ pcmseq2.c
+     basically rewrote the pcmseq2 reading code.  NOW: the code is cleaner,
+    it now reads pcm_seq2 files from NFS partitions (ie: with the RMS
+    record size fields interspersed throughout the file), is considerably
+    more robust, possibly more efficient (fewer reads, more seeks), and
+    now returns the samplerate (and can be made to return pretty much any
+    of the header fields in the file - although datetime might require some
+    work to convert to native format on Unix machines.
+
+ pcmfix.c
+     Added code to allow it to sexconvert as needed.  Haven't tested it yet,
+    of course.  Also, some code cleanups and possible bug fixes to pcmfix.c
+    and pcmraw.c related to cleaning up between multiple reads.
+
+    TODO:
+        1. write toeio library
+        2. add toe_lis support to the lblio library
+        3. add lbl_write() support to lblio library - for label editing...
+        4. return the actual samplerate for pcm_seq2 and pcmfeasd files.
+        5. add MATLAB file support
+        6. add support for common sound file formats (eg: .wav, .au, etc.)
+        7. a portable way to deal with the date_time field of pcm_seq2 entries
+        8. add Voxware support for audio card A/D converters (under Linux)
+        9. compile on VMS.  means finding a VMS mmap-alike.
+        10. add .exp_idx file support
+        11. support writing feasd files
+
+2/?/96
+ aplot_*.c
+ dataio/*.c
+    Numerous bug fixes
+
+2/14/96
+ aplot_rast.c
+ aplot_psth.c
+ aplot_ui.c
+ aplot_panel.c
+ aplot.h
+    Wrote new raster and psth code.  I'M FREE AT LAST!!!!!!!!!!!!!!!!!!!!!!!!
+    Finally, I can dump the plotwidget code.  In fact, I can also dump
+    my own widget directory.  The only subdirectories I need now are
+    fft, dataio, and aplotsrc.  The new psth and rast displays are neat;
+    they have the same toggle-able-axes-and-fast-zoom/unzoom/panning-and-
+    cursor-mark features that osc, sono, and label have.  The only real
+    loss by going away from the plotwidget code is that I lose postscript
+    output support.  That sucks, but I'll add that in myself.
+
+    I also removed several unused widgets in aplot_ui.c - including the
+    Opt button, the Acorr plot, the Noise filter toggle, etc.
+
+    I made it so the Trange text entry boxes now work.  You can type numbers,
+    and upon pressing return or clicking on zoom, the selected plots zoom.
+    The unzooming and panning buttons also work, although using the keyboard
+    is probably more convenient.
+
+    I made it so the PSTH and RAST plots can deal correctly with negative
+    time ranges...
+
+2/16/96
+ aplot_*.c
+     MAJOR CHANGES.  I have added POSTSCRIPT output to osc, psth, and rast.
+
+    Added sound output!!  When running under Linux, clicking on play will
+    cause up to 4 selected groups to be heard.  The first and third will
+    be mixed into the left channel; the 2nd and 4th will be mixed into the
+    right channel.  It actually really works!
+
+    I fixed the bug that caused events to often not be noticed in sonographs.
+    The problem was that I forgot to XtAddEventHandler() in aplot_sono.c.  I
+    can't see how it ever worked without it...
+
+2/18/96
+ aplot_*.c
+     Added POSTSCRIPT to sono.  Finally, a quick and easy way
+    to print a sonograph.  The quality isn't bad, but isn't great either.
+    Much room for (later) improvement.
+
+    Got rid of the zooming and panning buttons and the loadall toggle.
+
+    Lots of little fixes.  For example, printing/playing now set the busy
+    cursor.  Got rid of the filename text widget.  Moved the label toggle
+    up below Osc (per suggestion by Albert).  Printing/Saving now generates
+    a filename from the source data file.  Warning.. this will be a huge filename...
+    Also fixed up the mark_GC finally. (no more garbage trails on the lor & data
+    versions)
+
+    Now, pressing Shift+Arrow causes 50% scrolling to occur.  NOTE: make sure
+    that the window manager isn't gobbling Shift+Arrow keys for its own purposes.
+    I had to edit my .fvwmrc before this would work.
+
+    Added fftsize and fftolap submenus to the Sono popup menu.  They even work!
+
+    I've done most of the stuff in the previous todo list :->
+
+ todo:
+    7.    Compile the sucker on fred again.
+    8.    Add write and edit capability to the lbl plot.  Only do this if you can
+        make it a functional replacement for the ESPS/waves xlabel program.
+        (which we can't get for Linux, hence the motivation).  Besides, I
+        don't like xwaves.
+    9. Possibly add a horizontal scroll-bar to the top of every panel.  This
+        can provide xwaves-like scrolling for whatever plots are selected.
+        I think this would be very easy to add...
+    10.    When someone clicks on play, a new window should open up, with sliders
+        allowing some control of mixing levels of the four channels.  The
+        problem right now, is that when I mix a neuronal and a song channel,
+        the neuronal drowns the other out (unless I'm listening on headphones).
+    11.    Add "Save" and "PrintEPS" to the popup menus; remove Save from under
+        the panel list; the print button should now print an entire panel on
+        a single page as a postscript file, rather than saving EPS files.
+    13. Add a menubar to the main window.  Move "Add File", "Drop Files", "New Panel",
+        "Close Panels", "Print", "Play", and "Quit" to the menubar.
+    15. Add EPS output for the Label plot.
+    16. Add a noiseclipper toggle to the Oscillo plot, to control the sound output.
+    17. Fix up the postscript output.  I need to figure out how to center the Y-Axis
+        labels - right now, I'm really fudging.  I don't know how to figure out the
+        height of a postscript string.
+    18. Add plot titles, axes titles, etc.
+    19. When left clicking on a plot, rather than printing information to stdout or
+        stderr, the info. should be displayed right on the plot, in the same way
+        that 'XV' does.
+    20. Before creating an output file (either saving or printing eps), should check
+        to see if it already exists, and if so, then ask user if he wants it overwritten.
+
+ BUGS:
+    1.    there is a bug with reading .pcm_fix files on data!!!
+    2.    there is a bug somewhere in the sound playback: when at least two channels are
+        being mixed, at the end of playback, the channel assignment gets switched, I
+        think.
+
+2/21/96
+ pcmfix.c
+     fixed a bug which caused reading to crash on Sparc (big-endian) machines.  # of bytes != # of samples
+    to byte-sex convert...
+
+2/27/96
+ aplot_panel.c
+     Fixed up the pcm reading so it only closes and opens the file if the filename has
+    changed...  This results in MUCH faster pcm_seq2 file I/O.
+
+    Added (and cleaned up existing) checks in panel_zoom/unzoom to prevent
+    recalculation when nothing changes.
+
+ aplot_*.c aplot_x11.c [created]
+     Removed all the individual copies of DrawXAxis and DrawYAxis, along with the make_tics
+    and dbl_raise, and getFontStruct functions from the individual plots, and put them
+    in aplot_x11.c.
+
+ aplot_x11.c
+    The X axis and Y axis tick labels are now centered.
+
+ aplot_*.c
+     Saving and printing used to save from the same directory as the input file.  However, this was
+    impractical when reading from NFS-mounted partitions, esp. read-only ones (like fred's).
+    So, saving now occurs to the current working directory.
+
+    I've now added popup-menu buttons to allow saving and EPS printing.
+
+ aplot_osc.c
+    Cleaned up the visual problems in the Oscillograph at certain zoom levels.  The problem was
+    that I was using the 'connect the average of several points' algorithm when there were too
+    few points; now I use the 'connect the dots' algorithm until the #points > 5 * #pixels.  So
+    I only average when there are at least five points to average.  (The reason behind the
+    whole idea is that I don't want to blast 100,000's or 1,000,000's of line segments to the
+    X server like Matlab does).  On the other hand, I don't care about blasting those to the
+    printer...
+
+ todo:
+     21. Major change to the sono_display routines.  When sono_display is called, have it
+        calculate the FFTs only for those time bins that will be displayed given the
+        current window size.  Allocate an array of booleans that indicates whether the
+        fft for that time bin has been calculated, and keep it up to date.  Display the
+        FFTs as they are calculated, and when finished, spawn a low priority background
+        thread to calculate all the uncalculated FFTs.  Have panel_set wait until the
+        thread is finished if necessary.  This lets sonos come up fast; lets people
+        see the results as they are computed, and doesn't hold up other plots while
+        the sono is computed.  Also, I'm computing way too many FFT's - if I did
+        them only on an as-needed basis, things would be much more efficient.
+    22. Add frequency interpolation to the sono rendering routines.  Just do a linear
+        interpolation.  Maybe only do this for the postscript output.
+
+    23. I want the print button to pop up a dialog that allows printing of an entire
+        panel.  The dialog should allow: 1) landscape/portrait printing, 2) print to
+        file or printer, 3) maybe a DPI setting.  Pressing the third button should pop
+        up this dialog, while the first button should just make it use defaults...
+    24.    I want the play button to pop up a dialog that allows independent control of
+        the relative mixing levels for each of the channels (up to four) being
+        mixed.  The dialog should also have a play button.   Actually, maybe the
+        third button should invoke this dialog, while pressing the first button
+        simply plays with no dialog.
+
+3/4/96
+ todo:
+     25.    Add rplay support, so we can run remotely, but listen locally.
+    26. Add .exp_idx file reading support.  I don't necessarily need to support
+        multiple entries per file; but adding single entry .exp_idx file support
+        means I can use aplot to play stimuli to the birds (the stimuli are on fred
+        in .exp_idx format, meaning we have to use units to play them)
+
+3/7/96
+ aplot_osc/psth/rast/sono/label.c
+    If an empty plot was displayed and the user tried to select a range,
+    aplot would crash with FPE.  This was a division by zero error, because
+    it was dividing by xmax-xmin, where xmin == xmax.  Fixed this in the
+    *_drawstartmark and *_drawstopmark functions.
+
+ expidx.c
+     Added the ability to read .exp_idx files, with a few (large) limitations:
+        * only the first entry can be read.
+        * the files MUST be ftp'ed or rcp'ed to a Unix machine from the VMS machine
+            ie: NFS WILL *NOT* WORK!
+        * I don't support mmap for these files; meaning the whole entry is loaded
+            into malloced memory.
+    I may eventually decide to support multiple entries; however, I will never
+    support NFS access to these files from a VMS server: the files have all sorts
+    of weird RMS junk in them that ftp and rcp know how to clean up and I don't.
+    This limited support, however, allows relatively convenient access to all of our
+    stimuli files, and also allows the stimuli files to be converted to another
+    format without going through them one by one with units...
+
+ BUGS:
+    3.    Another type of crash occurs if you try to display a sono of an empty
+        file: outfft() tries to allocate a negative amount of memory...
+
+3/9/96
+ aplot_sono.c ../fft/sonogram.c ../fft/sonogram.h
+    Major changes to sonogram displays.  The main result is that FFTs are now
+    only computed on demand, rather than all at once while reading.  This means
+    that sono's come up MUCH faster, although zooming and panning might be
+    somewhat slower.  I may eventually add the ability to launch low priority
+    threads, or even X11 work functions to compute the not-immediately-needed
+    FFTs in the background, so when you zoom or pan, they'll already be there.
+
+    Other results include: sonogram is better aligned to oscillo now, because I
+    now center an FFT window on a sample, rather than have the sample correspond
+    to the left edge of the window.  This entails zeropadding of the first and
+    last window.
+
+    Much cleaner FFT code - I don't use fftmaster.c anymore (but I'll keep it
+    in the library, for other programs that use it).
+
+    The following illustrates the difference in speed:
+        10.290u 3.190s 0:24.99 53.9% 0+0k 0+0io 12748pf+0w        (new code, -g2)
+        33.810u 3.060s 0:47.97 76.8% 0+0k 0+0io 11326pf+0w        (old code, -O2)
+        53.600u 3.280s 1:06.00 86.1% 0+0k 0+0io 12856pf+0w        (old code, -g2)
+    I viewed a sono+osc of all 10 entries in zy_hv12s_19960206b.pcm_seq2, which
+    was rcped to the local disk from fred (so no network access).  The window
+    size of the plot was the default (about 500 pixels wide).  This was using
+    the default 256pt FFT, 50% overlap.  The entries were 48, 48, 35, 63, 52,
+    61, 34, 72, 35 seconds in duration.  The machine is a P133 with 32Mb, running
+    Linux 1.3.68.
+
+    There is a severe swapping issue when the files start reaching 300s, or the
+    overlap is increased to 95%.  I suspect that using MMAP for the FFT data could
+    improve performance considerably.  Also, if I stored FFTs sequentially as I
+    computed them, (instead of in temporal order), then locality of access would
+    allow me to effectively not need to allocate as much memory.  In other words,
+    I would only access the first half of the *spec matrix, if I only computed
+    half the FFTs; as opposed to accessing the whole memory range for the same
+    amount of data.  The problem is that after several zooming and panning operations,
+    things will be so out of temporal order, that I may severely worsen the swapping
+    problem (locality goes out the door after the initial viewing)...
+
+3/11/96
+ aplot_panel.c dataio/pcmseq2_read.c
+     Fixed some bugs in handling end of pcmseq2 files.  1) there is sometimes a
+    spurious longword at the end of the file, so feof() fails.  Now, I also check
+    if the current position is < 10 from the filesize.  2) If a pcm read failed,
+    junk data w/ non-zero size could be used instead, because of uninitialized
+    variables in aplot_panel.c...
+
+    This also apparently fixes the bug where, when reading past the
+    EOF, the Sono keeps the image from the previous entry.
+
+    BIG CHANGE: fft/sonogram.c/create_sonogram() now uses mmap() for large (>10Mb)
+    sonograms.  This results in an absolutely MASSIVE speedup.  It's scary now.
+    Doing a 95% overlap of a 70s file takes a few seconds at most.  I also realized
+    that this can also take > 100Mb of memory - which was greater than the amount
+    of RAM + SWAP on the pentiums, which explains why things came to a crawl when
+    Albert was trying wacky things like this.  Now, it creates a temporary file to
+    page from, so there must be enough space in $TMPDIR.
+
+ todo:
+     27.    Update the aplot_sono.c DrawSono() function to use XSHM images if available.
+        This may significantly speed up graphics..
+
+3/18/96
+ pcmseq2_read.[ch]
+     64-bit problems on the Alpha fixed now.  I was running sexconv32() on longs,
+    which are 64-bit.  I now used ints instead of longs in several places here.
+    This gets rid of the 'unaligned access' run-time warnings.  The main problem
+    was in readentryhdr().  A related problem was resulting in the Alpha not
+    reading the last entry of a pcm_seq2 file...  Now fixed.
+
+ todo:
+     28.    Update pcmseq2_read.c to cache the entry sizes, (BIG WIN), and to
+        perform speculative read-ahead in pcmseq2_seektoentry() and
+        pcmseq2_getsize().  What I mean is, instead of going through the
+        entry 1 segment at a time, skip ahead several segments.  You'll know
+        if you've skipped past the entry because the header will be become
+        invalid.  In that case, go backwards in smaller steps to find the
+        real end-of-entry.  Also, pcmseq2_seektoentry() should update
+        lastentry, which it doesn't right now.
+    29.    Check if pcmseq2_write() works.  Also, consider modifying one of the
+        header fields to allow sticking a size into the entry header (like the
+        gain field).  Then, when reading, check if the size is already known,
+        and use it if so.  This would probably greatly increase the speed of
+        reading, since I won't have to go through the entry twice...
+
+3/19/96
+ lblesps.c
+     Added the ability to write out labels to an ESPS .lbl format file
+
+ aplot_label.c
+    Man, I am too good :->.  I added the ability to edit labels files.  You can select
+    a range and type a character (for example, 'x').  This produces 'x-0' and
+    'x-1' labels that delineate the range.  If a range is not selected, then a
+    single character label is inserted at the current position.  If 'backspace'
+    is pressed, then the nearest visible label to the current mouse position is
+    deleted.
+
+ aplot_osc.c aplot_panel.c
+     I added a 'NoiseClip' toggle button to the Osc plot's popup menu.  I also
+    made aplot_panel.c panel_play() check this, and clip the input ala the
+    Grass AM-8 Audio Monitor (the clip value is hard-coded right for now to
+    1000).
+
+ aplot_panel.c
+     I also MAY have fixed the weird sound playing bug, with flipping between
+    speakers at the end of the sound.  Haven't tested it though.
+
+ BUGS:
+    4.    Unaligned access and crash on lor reading pcm_seq2 files past the end.
+
+
+3/19/96
+ pcmseq2_read.[ch]
+     Major changes.  Totally cool technique now.  Upon opening, I scan through the file
+    BACKWARDS to determine the number of entries, the size of each entry, and the position
+    of each entry.  I cache all of these.  I have greatly, greatly, reduced the number of
+    seeks.  Before, I wasn't caching the size.  Also, to determine the size, I was scanning
+    through the file segment by segment.  And then I'd rewind and actually read it.  That
+    was horrible - ESPECIALLY for NFS - as I was doing many more reads than necessary.  Now,
+    I go to the end of the file, read the size of the last entry, use that to compute its
+    start position, and repeat with the previous entry, until I get to the beginning.  I also
+    handle the case where Gather puts a -1 for the entrysize (which it spuriously does).
+    Before, I wasn't handling that case.  In short, the code is really quite nice now.  The
+    code has been greatly simplified and shortened.
+
+ sonogram.c
+    Fix to calculation of DC power.  The FFT library I was using was putting the Nyquist freq.
+    in the imaginary part of the DC.  I was adding the squares of the two to get the DC power.
+    Now, I ignore the Nyquist part altogether (although to be totally correct, I should return
+    nfreqbins+1, and treat the Nyquist frequency as I treat the DC power.
+
+ aplot_sono.c
+     I experimented with doubling the frequency bins by adding them in between existing ones
+    and averaging - but it apparently made no difference in the output...
+
+ aplot_osc.c
+     Before, I was putting out all the points no matter what.  Now, I put out a 600 DPI printout
+    that looks even better.  I also found a nice fix for the non-overlapping graphics: when
+    calculating mins and maxes, let the windows overlap by one sample.  Anyway : the same PS
+    figure that used to take 8.7 Megabytes now takes only 200kB.
+
+4/13/96
+ aplot_psth.c
+     Bug fix: psth_resize_callback was sometimes called before psth_display
+    loaded the data (but after psth_open()).  This was resulting in crashes
+    on startup.  Fixed by adding a check at beginning of psth_set() for
+    loaded data.
+
+ aplot_postscript.c
+     I had modified the PS Xaxis label drawing to prevent clipping of axis
+    labels.  This required knowledge of the right border, for which I was
+    using 'width'.  This is correct w/o y-axes, but otherwise requires
+    the use of 'width + offx'.  Fixed.
+
+ fft/sonogram.c
+     Fixed bug with handling of last FFT window with partial samples.  It
+    was filling with junk data, instead of using the available data and then
+    zero-padding.  This kept resulting in FP exceptions on some sonograph
+    displays...
+
+ aplot_psth.c aplot_osc.c
+    Fixes to the PSTH eps output.  Now, it writes higher quality, higher
+    DPI output (with more exact positioning, etc.).  I basically adopted the
+    method that was used in aplot_osc.c.  Some cleaning up to both, also.
+
+ aplot_psth.c
+     Added a popup menu thingie for selecting a bin duration.
+
+ aplot_psth.c aplot_panel.c
+     The PSTH plot wasn't changing when the entry was changed.  This was
+    because it didn't realize something had changed.  Now, it checks the
+    group's dirty flag, and if dirty, redraws.  panel_display now waits
+    until after it has called all the plot_display's before clearing the
+    dirty flag.  I think using the dirty flag for this purpose is okay;
+    it shouldn't hurt other things (like the label plot, which sets the
+    dirty flag whenever the user adds a label...)
+
+    A problem with one of the previous fixes (having psth_set abort on
+    null data, because it was sometimes called by psth_resize_callback
+    before having things set up by psth_display) was that, after going
+    to an invalid unit, the data became NULL, so psth_set aborted before
+    clearing the display, leaving the old data, and making it difficult
+    for the user to understand that he was past the number of units in the
+    data file.  Now, I check pdata->group->samplerate for 0.0.  This gets
+    set to 20000.0 by panel_display, so this check only affects calls before
+    panel_display.
+
+ aplot_psth.c
+     Added a 'Boxes' toggle to the PSTH menu.  This changes the rendering
+    style (for both X11 and postscript) to draw a box for each bin, instead
+    of just joining the top segments of each.
+
+ aplot_ui.c
+     Added some fallback resources for the Digital Unix version of aplot,
+    to make it use the same nice grey colors as the Linux version.
+
+4/18/96
+ sonogram.c
+    Fixed a longstanding bug which caused log zero errors depending on the
+    input signal.  I wasn't checking if the real and imaginary FFT components
+    were zero before converting to dB.  This was happening for some of Sven's
+    artificial signals (with stretches of zeros).  Now, I return
+    -10 * log MAXFLOAT for these cases.
+
+7/3/96
+ dataio/pcmseq2_write.c, pcmseq2_read.c
+     Fixed a longstanding bug with writing pcmseq2 files.  In truth, the
+    problem wasn't how I was writing them, but with the code to read them:
+    I write all the raw data for an entry, and then add a segment containing
+    all zeroes, with the recordsize field set to the correct size of the
+    entry.  The problem is that the reading code was extrapolating from the
+    recordsize field to guess the number of segments; the fact that I had
+    an extra segment with all zeros was throwing things off.  I modified
+    the reading to attempt to go backwords by one segment if it needs to.
+    I also did some cleanup.  The end result is that I can now read the
+    custom made pcm_seq2 files.  I have tested things by converting to and
+    from various formats, and comparing files - everything seems to be
+    working fine.  NOTE: The reason I add a segment full of zeroes is that
+    I'd like to be able to call pcm_write() repeatedly without specifying
+    the size of the entry first.  Then I'd like to be able to indicate that
+    I'm finished with the entry (with a call to pcm_seek()).  Therefore, I
+    don't know the size of the entry at the time that I write the last
+    segment of real data.
+
+7/10/96
+ dataio/pcmwav.c
+     New file.  Add the ability to read .wav files.  It should work with
+    both 8 and 16 bit wave files (only tested 8 bit).  It also should work
+    with mono and stereo files, but right now it only returns the first
+    channel.  I've already written all the code for the 2nd channel, however.
+    All I need to do is make pcmwav_seek() do the right thing...
+
+    Aplot can now load .wav files.  I need to make it actually READ the
+    samplerate from input files, though.  The current situation is somewhat
+    silly.
+
+    Writing of .wav files is not supported yet...
+
+7/26/96
+ dataio/pcmseq2*, dataio/pcmio.[ch]
+    Added code to read/write a VMS timestamp in pcmseq2 files, and convert
+    these into UNIX time_t timestamps.  The VMS format is a 64bit number in
+    100ns units starting at Nov 19, 1858.  The Unix format is a 32bit number
+    in seconds starting at Jan 1, 1970.  The conversion became easy once I
+    learned that GCC supports the (long long) type (== 64bits on 32 bit 
+    machines).  I just figured out what 1/1/1970 was in VMS format, and now
+    subtract that from the VMS timestamp, and convert from 100ns to seconds.
+    One additional change was required: the resulting time was always off by
+    5 hours.  This is presumably because the VMS timestamp is relative to
+    GMT.  We are in Chicago, ie. 6 hours behind GMT.  We are also in
+    Daylight Savings Time, so our clocks are set ahead one hour.  I didn't
+    want to deal with all this for now, so I just correct for 5 hours...
+    Soon, I'll have to fix this, but it looks to be a little messy...
+    Also, I believe that by doing things this way, I don't have to worry
+    about leap years, and leap seconds, etc.  But no guarantees.
+
+    While I was at it, I cleaned up the dealing of sampling rates.  Now,
+    the samplerate can be correctly read from/written to pcmseq2 files...
+
+    By the way, the writing of the timestamp can be done in two ways:
+    pcm_ctl(pcmfp, PCMIOSETTIME, &time_t), pcm_write(...) will write
+        whatever time is given in time_t to the next entry.  If you set
+        the time_t to 0, then the current time will be used.  IF YOU DON'T
+        CHANGE THE TIME, ALL ENTRIES WILL HAVE THE SAME TIMESTAMP!!!
+    pcm_write(...) without a call to pcm_ctl() will write the current
+        time (as of the pcm_write() call).
+
+7/27/96
+ aplot_panel.c aplot_osc.c aplot_sono.c
+    Now, I can load and correctly handle pcm files of different samplerates.
+    Also, the bug where you have to select a range in order to play a sound
+    is now fixed.
+
+8/7/96
+ dataio/pcmseq2.c
+    Fixed a minor bug that prevented the samplerate from being returned
+    correctly.  Now, aplot can read .pcm_seq2 files of different samplerates,
+    and correctly deal with them.
+
+8/8/96
+ dataio/pcmraw.c
+     Fixed a minor bug that prevented the samplerate from being returned
+    correctly.
+ aplotsrc/aplot_label.c
+     Used to only accept osfDelete to delete labels.  That worked because XF86
+    is broken and mindnumbingly stupid wrt. BackSpace and Delete.  Now I also
+    accept osfBackSpace.
+ aplotsrc/aplot_label.c
+     I used to not accept upper case labels!   Now I do.
+
+8/17/96
+ aplotsrc/aplot_sono.c
+    BUG: there is a bug, which shows up if I select two pcm files, and try to
+    draw 2 sono's at once.  The first one goes fine, but the second one gets a
+    height of 1 back from XGetGeometry().  It then subtracts offy and offy2
+    from this, causing it to become 65518 (height is a ushort), which 
+    effectively locks things up.
+
+8/17/96
+ dataio/pcmseq2_read.c
+     dataio can now read pcmseq2 files that were prematurely aborted, even in
+    the case of an incomplete segment.  It ignores the data in that incomplete
+    segment, scans to find the start of the last segment, and then scans to
+    find the start of that entry.  This was an issue because in a couple of
+    experiments using SABER, I had to press ctrl-c while saber was collecting,
+    which produced pcm_seq2 files I couldn't read...
+
+9/2/96
+ dataio/*.c (pcmxfix, pcmwav, pcmraw, pcmseq)
+     dataio can now write .wav files correctly.  They are currently restricted
+    to 1 channel only, though.
+
+    dataio also now sets the filesystem timestamp on .wav, .pcm, and .pcm_fix
+    files - SO, after extracting .pcm entries from a .pcm_seq2 file, a simple
+    'ls' command will reveal the recording times of the data.
+
+    In general, conversions between various formats try to preserve timestamps
+    now.
+
+9/15/96
+ aplotsrc/aplot_ui.c
+     While working on symbiont, I discovered that I was trying to free an XmString
+    with XtFree(), instead of XmStringFree().  This turned out to be quite fatal
+    under some situations.  I have now corrected this in
+    aplot_ui.c:cb_file_dialog_ok()...
+
+    TODO:
+        1. add MATLAB file support
+        2. add support for more sound file formats (eg: .au, .aiff, etc.)
+        3. add support for writing .exp_idx files, .feasd files
+        4. add sticky parameters - window size,pos, plot sizes, axis values, etc.
+        5. zooming+panning+display of lbl plots could be enhanced...
+        6. be able to print a complete panel
+        7. add plot titles, axis labels
+        8. be able to play sounds on a SparcStation (8-bit uLaw)
+
+ aplotsrc/aplot_ui.c
+     I undid the previous change - for some crazy reason, in this case it
+    causes crashes..
+
+ aplotsrc/aplot_ui.c
+     Changed every occurence of XmSTRING_DEFAULT_CHARSET to XmFONTLIST_DEFAULT_TAG
+
+    Changed cb_file_drop_but to become MUCH simpler.  For some crazy reason, I didn't
+    know the correct way of finding the selected items in a list.  I was getting the
+    POSITIONS of the selected items, then getting all the items themselves, and then
+    constructing a new list of selected items.  It is much easier to just get the
+    selected items themselves.  (XmNselectedItems, XmNselectedItemCount).  NOTE: you
+    can't free the returned items, as they are not copies...
+
+    made cb_file_dialog_ok() much simpler - I was trying to get an null-terminated
+    version of the selected filename, and then not using it.  Now, I don't even
+    bother (reduced ~20 lines to 4)
+
+    made cb_plot_add_but() much simpler.  same problem as above.  In addition, I was
+    using StringCreateLtoR to add some files to the File list.  If I then tried to
+    Unparse those names with XmStringTableUnparse, it wouldn't work.  But if I
+    generate the same strings with XmStringGenerate, everything is hunky-dory.  So:
+    I'm now using XmStringGenerate, and to hell with backwards compatibility.  The
+    other function is a legacy function anyway...
+
+    changed every occurrence of XmStringCreateLtoR() to XmStringGenerate, with approp.
+    changes in parameters...
+
+10/16/96
+ aplotsrc/aplot_sono.c
+     Fix for a Motif bug - where the height of a widget is sometimes returned as a huge
+    (eg: 65518) number...
+
+2/15/97
+ aplotsrc/aplot_sono.c
+     Cleaned up handling of create_sonogram ERROR return.
+
+ fft/sonogram.c
+     Cleaned up error handling somewhat.
+
+3/10/97
+ aplotsrc/aplot_isi.c, aplotsrc/*.c
+    Added a new plot (the first new plot in a long time!).  It is the ISI plot, and works
+    a little differently from the others.  It plots an ISI distribution of time-of-event
+    data as a histogram.  You can control the bin width, and can print out or save the
+    histogram.  You can scroll through portions of a file of event times, and the selected
+    regions will have their ISI distribution plotted.  The contents of the plot itself
+    don't scroll, and don't allow range selection themselves.
+
+ aplotsrc/aplot_lbl.c, aplotsrc/aplot_panel.c
+    Modified label plot so it allows a PCM file to be plotted.  When this is done,
+    labels are loaded/saved to a file with the same basename, but with a _%03d.lbl extension,
+    where %03d stands for the entry number.  Also, when this is done, the label plot
+    determines the proper duration of the plot from the PCM file.  Labelling has never
+    been easier :->.  Note, newly created lbl files are written to the same directory as the
+    PCM files.
+
+ aplotsrc/aplot_ccor.c
+    Started this file, added ccor entry to struct plotdata.  I copied the ISI plot - ISI
+    being the most similar to CCOR (both are histograms, neither should allow panning, etc.
+
+ TODO: (ccor)
+    The complexity with ccor is that two input files are used...  The user interface code
+    needs to change slightly to pass 2 filenames to the plot: I will only allow ccor to go
+    up if there are exactly 2 files selected.  Currently, the groupdata structure holds
+    one file of data; it is read in panel_display().  plot_display is called afterwards.
+    One way of doing things is to have plot_display read the second file into the plotdata
+    structure.  But I'd like all File I/O to be in the same place, at least conceptually.
+    So, another way of doing things is to have each plot's plot_display() read data into
+    the group structure.  It would only do this if it wasn't already loaded, of course.
+    Thus, if a SONO and an OSC both belong to the same group, the first one (SONO) would
+    load the data; the second one would see that it was already loaded and go on.  CCOR
+    acts differently only in that it reads 2 files instead of just one.
+
+ TODO: dataio:
+     if we detect gzipped PCM, TOE, and LBL files, automatically call zlib functions to read
+    and write these files.
+
+3/11/97
+ aplotsrc/*
+     Major overhaul of how I load data.  panel_display no longer loads the data for each
+    group.  Instead, the individual plot_display's do this themselves.  Also, I created
+    functions load_pcmdata(), load_lbldata(), load_toedata() in aplot_panel.c that do the
+    grunt work, and are called from the plot_display() functions.  Now, to make ccor work,
+    I just need to call load_toedata() twice in ccor_display(), and create additional storage
+    in the groupdata structure.   NOTE: the freeing of all this data is still done in
+    panel_close()...
+
+ aplotsrc/aplot_ccor.c aplot_ui.c aplot_panel.c aplot.h
+     Major changes.  CCOR now works!!  It's very nice.
+
+4/21/97
+ aplotsrc/*
+     The previous overhaul of where I load the data messed up the new label plot code
+    (labelling a pcm file).  Fixed this.  There is a more serious issue, though, which
+    is the handling of the group->dirty flag.  The idea is that if my group is a pcm
+    file, but my plot is a label, then setting the group->dirty flag isn't right, since
+    it forces unnecessary updates of SONO/OSC plots whenever the label is updated.  But
+    if I don't set it, then panel_update() doesn't know to refresh the label plot.
+    What I've done is to have panel_update check BOTH group->dirty AND plot->dirty, but
+    this seems a little unclean. (:->)
+
+4/26/97
+ aplotsrc/aplot_label.c
+     Further fixed the loading of label files.  Changing entries didn't change the currently
+    displayed label file...  Now it does.
+
+4/29/97
+ aplotsrc/aplot_rast.c
+     Now, statistics are displayed for the whole plot if a subrange isn't selected.
+
+    Also, changed statistics display slightly, adding a preceding line giving simpler
+    calculations of avg spikes/rep and firing rate.
+
+ aplotsrc/aplot_panel.c
+     load_pcmdata(): Change so that if we can't open file, and name has a '%' in it,
+    then try to create the name via sprintf(realname, basename, entry), and load
+    THAT.  This way, if I type 'aplot hv12s_%03d.pcm', I can scroll through various
+    files with the entry button... WITHOUT creating a pcm_seq2 file first.  Note, no
+    requirement for contiguous entries is imposed (there can be entries 1 & 3 w/o 2).
+
+5/3/97
+ aplotsrc/aplot*.c
+     Added scrolling markers showing progress during playing (in SONO and OSC)...  
+
+ aplotsrc/aplot_ui.c
+     Cleaned up handling of CCOR plot creation..
+
+ aplotsrc/aplot_label.c, pcmio*
+     Added pcmio pcm_ctl command (PCMIOGETCAPS) to determine capabilities of the file
+    format being employed.  Right now, only PCMIOCAP_MULTENTRY and PCMIOCAP_SAMPRATE
+    are available.  MULTENTRY tells you if the file format supports reading/writing
+    multiple entries.  For now, only .pcm_seq2 files support this.  SAMPRATE tells
+    whether the file format can store the samplerate (.pcm, .pcm_fix cannot).
+
+    The label file reading code, when labelling a pcm file, checks the MULTENTRY cap.
+    before deciding on a name for the .lbl file.  If the file doesn't support multiple
+    entries, then it doesn't bother adding a _%03d to the basename. (eg: hv12_002.pcm
+    would be labelled in hv12_002.lbl instead of hv12_002_001.lbl..multiple
+    entries, then it doesn't bother adding a _%03d to the basename. (eg: hv12_002.pcm
+    would be labelled in hv12_002.lbl instead of hv12_002_001.lbl...)
+
+ aplotsrc/*
+     Fixed a bug where .toe data wasn't being freed...
+
+    Now, hv12s_%03d.lbl and hv12n_%03d.toe_lis work just like hv12n_%03d.pcm.
+    Note that this means that changing entries in .toe plots means changing entries,
+    NOT changing units, like it used to.  To compensate, I've added a new popupmenu
+    to each of the toe plots to select the unit.  Tested things, and they look pretty
+    good.
+
+5/4/97
+ aplotsrc/*
+     Big cleanup of lbl loading.  Now, load_lbldata correctly deals with pcm, %pcm,
+    lbl, and %lbl input files.
+
+    Bigger cleanup of dirty mechanism.  Before, when plotting a sono, osc, and label
+    of a .pcm file, the sono would clear the group->dirty flag when it read the pcm
+    data.  Therefore, by the time label_display got called, group->dirty was cleared,
+    and it didn't think it had to update the label data... Now, panel_display sets
+    pcmdirty, toedirty, and lbldirty before going through the plot_display calls. The
+    plots only clear the appropriate ones before exiting.  So sono_display clears pcmdirty
+    but leaves toedirty and lbldirty alone...  Works smoothly.
+
+5/10/97
+ aplotsrc/aplot_panel.c
+     Fixed a bug during playback that caused the cursor to stay busy if an error
+    occurred during playback...
+
+5/15/97
+ aplotsrc/aplot_panel.c
+     Fixed a bug that prevented normal updating.  Basically, I wasn't clearing group->dirty,
+    so whenever I added or deleted a label, all plots in the group would re-display, which
+    slowed labelling down ridiculously.  Not it is MUCH better.
+
+5/20/97
+ aplotsrc/*.c
+     Thanks to 'vigorous' urging from Dan, I'm starting to make parameters "sticky".
+    So far, ccor tau,taustep,winsize, isi bindur, sono fftsize/olap, grayscale, etc.
+    are sticky.  This means that once a parameter is set, it stays active as long as
+    that aplot is running.
+
+ aplotsrc/aplot_ccor.c
+     Made more robust.  Handles reps w/ zero spikes, unequal numbers of reps, etc.
+
+5/31/97
+ TODO list:
+     add AIFF, AU, VOC, 8SVX file support
+    add Filter, Amplify, Compress, Dilate, NR functions to edit sounds
+    add Cut & Paste support, along with mixing / subtracting support
+    add Spectrum plot (already written for symbiont)
+
+6/10/97
+ aplotsrc/aplot_rast.c
+     Added an 'AutoYSize' popup menu item.  It forces the height of the plot to be set
+    so each rep gets one pixel.  It doesn't really work for < 10 reps, though.
+
+6/16/97
+ aplotsrc/*
+    Vastly improved the printing capabilities.  Now:
+        Pressing the PRINT button prints a replica of the whole panel to the printer directly
+        Shift-pressing it pops up a file selection box and prints an EPS version of the panel to that file
+        Alt-pressing restores the old behavior (have each plot create an EPS file)
+    Thus, a whole panel of plots can be created at once without playing around with a
+    layout program like 'xfig'.  It can be sent to the printer directly (via lpr), or saved to an
+    EPS file, allowing later manipulation...
+
+ aplotsrc/*
+   Also, I've cleaned up a little bit.  I've removed all the little aplot_{plot}.h files,
+   and put the headers they contained into aplot.h.  Also, where it makes sense, I've changed
+   the types of functions to int, from long.
+
+12/21/97
+ fft/sonogram.[ch]
+     I've added the function sonogram_setopts() and allowed for setting various parameters
+    such as windowtype (Hamming, Hanning, Blackman, Triangular, or Boxcar (no window)),
+    Log or Linear scaling, or the use of another method to estimate the power spectral
+    density - the Maximum Entropy Method.  You can also set the number of poles to be used
+    by this method.  The library is still compatible with old programs that don't know
+    about this new function, since create_sonogram hasn't changed.
+
+    The Maximum Entropy Method generates higher-quality sonograms, in the sense that the
+    output prints better, and looks smoother, without the speckling apparent in the FFT
+    derived sonograms.  However, it is also slower to generate.  I took the code (with minor
+    modifications) from Numerical Recipes.
+
+ aplotsrc/aplot_sono.c
+    I've added various popopmenu items to allow taking advantage of the many new options
+    provided by the new, improved libfft.a.  If the Maximum Entropy method is used for
+    display, then it is also used for printing.
+
+ aplotsrc/aplot_postscript.c
+     I've added a 'gsave' to the start of every EPS file, to match the 'grestore' I had in
+    PSFinish (which was previously unmatched.)
+
+ aplotsrc/aplot_sono.c
+    The output using the Maximum Entropy assumes 300DPI, for now.  This means that it is
+    putting out (300DPI / 72DPI) * (screen resolution) postscript points, each with 256
+    possible gray levels.
+
+    I'm also compressing (sort of) the generated EPS, by using the ASCII85 encoding method,
+    which takes 4 bytes and outputs them as 5 ASCII bytes.  Before, 4 bytes would turn into
+    8 bytes (each byte had 2 hexadecimal digits).  For now, I only do this for the Maximum
+    Entropy output.
+
+12/23/97
+ aplotsrc/aplot_isi.c
+    SpikeSort sometimes (only sometimes, when do_overlaps is set to 1) writes out-of-order
+    spikes.  I have a case where 72203.515625 comes before 72203.500000, for the same unit.
+    It seems to have ignored the refractory period.  When it did this, I think the function
+    TRIDAG spit out an error message (the error message came from code that I had put there).
+
+    The ISI plot doesn't much like this, since it updates bin[-1], which writes over some
+    private calloc/malloc stuff, which shows up as a segmentation violation during the
+    much later call to free().  I've protected against this, and now aplot writes a warning
+    message when the ISI plot detects out of order spikes.
+
+    I've also made the ISI plot's last column include all spikes greater than or equal to
+    the ISI range corresponding to that column.   This makes it evaluate missing spikes.
+
+    PS: The ElectricFence malloc-debugging library was very useful here...
+
+12/31/97
+ aplotsrc/aplot_label.c
+    The label plot now allows one to see only specific labels.  Typing 'ctrl-#' where # is a
+    digit, shows different labels, depending on the digit.  If # == 0, or # is greater than
+    the number of different labels, then all the labels are shown (the default behavior).
+
+4/11/98
+ aplotsrc/aplot_osc.c
+    First introduced several months ago, the oscillograph can run Mike Lewicki's SpikeSort
+    on the data currently being plotted.  Pressing 'F2' runs 'amishss' in infer mode, and
+    'F3' runs it in classify mode.  I've fixed things up so that aplot now forks before
+    running amishss (via popen()), so spikesort now runs asynchronously.  This makes
+    offline analysis of data much more convenient...
+
+    TODO: read a .aplotrc file on startup, containing things like preferred window-sizes,
+    the plots selected by default on startup (currently hard-wired to Sono and Osc), and
+    even a configurable external program starter.  I.e. if I had a section that read like:
+    Osc(Keys("F2", @spikesort-infer))
+    Osc(Keys("F3", @spikesort-class))
+
+    Macro(spikesort-infer) \
+        tmpfilename = CreateTmpFile() \
+        toefile = Fname_PCM2TOE($loadedfilename, $entry) \
+        WriteToFile(tmpfilename, "load $loadedfilename $loadedentry\ninfer\nsave aplottmp.ssetN\nclass\nw $toefile\n") \
+        Spawn("amishss $tmpfilename");
+
+    etc.
+
+4/12/98
+ aplotsrc/aplot_psip.c
+    First introduced several months ago, I've finally fixed this up.  The PSIP plot is
+    like a PSTH in that it plots estimated frequencies of firing at various time offsets
+    from the onset of a stimulus.  The difference from the PSTH is that instead of binning
+    the spikes, it calculates the instantaneous frequency (inverse of the time interval
+    preceding each spike) for every spike, and plots these against the time of the spike
+    relative to stimulus onset (t=0).  The resulting instantaneous frequencies can (and
+    should be) be smoothed.  This plot can reveal subtle effects on spike timing of fast,
+    regular firing cells (like RA units), which do not show up easily on the PSTH because
+    of the high background firing rate.  Today I fixed this plot up, and implemented the
+    postscript output.
+
+ aplotsrc/aplot_psth.c
+     The appearance of this plot was always very susceptible to the width of the window,
+    such that when the number of bins exceeded the width in pixels, the plot became hard
+    to read.  Each pixel now represents more than 1 histogram bin.  I was plotting from
+    the minimum to the maximum histogram bin value.  Now I plot from zero to the maximum.
+    The postscript output is unchanged, and in effect shouldn't experience this problem,
+    given the large resolution.
+
+6/14/98
+ aplotsrc/aplot_postscript.c
+     For some reason, I was scaling everything to 72/75'th size, but not the bounding
+    box.  In other words, my EPS files had a bounding box that was too big (by 75/72).
+    Fixed by not doing this anymore.  Old EPS files can easily be edited to remove this
+    behavior.
+ aplotsrc/aplot_*.c
+    Now, X and Y-axes are sticky, for each plot type (as in, if you remove the y-axis for
+    a sono, the subsequent sono's won't have them, but a subsequent Osc might).
+    The Raster plot's AutoYSize feature is also now sticky, which is pretty nice in
+    practice.  I'm almost set to read .aplotrc from the user's home directory to get
+    initial defaults for all the many sticky parameters.
+
+6/19/98
+ aplotsrc/aplot_panel.c aplot_ui.c
+     Clicking on the Close button on a panel window now correctly closes the panel, as
+    opposed to just letting the window manager UNMAP the window, introducing potential
+    crashes, etc.  Unfortunately, the Alt-F4 key, as well as the Close popup menu item
+    (at least in FVWM, and presumably MWM) actually KILL the window, and there isn't
+    anything obvious I can do about that.  They SHOULD send the 'CLOSE' or DELETE
+    message...
+
+
+3/12/2000
+// okay.  I haven't updated this file for almost two years.  That doesn't mean there
+// haven't been changes.  So, here I'm going to try to list the new features from
+// memory.
+
+ 1) aplot_sono.c
+         Now supports use of the multi-taper method to generate spectrograms.
+        Added colormap support.  Can choose from among many colormaps.  These are only
+            for screen output - postscript output is still in gray scale. (for now).
+        Fixed a bad bug which messed up the colormap (even gray scale) on 32 or 24bpp
+            displays.
+ 2) generic
+         Aplot can now save configuration information to various default files.  Thus,
+            settings such as window size, etc. can be preserved from session to session.
+            Even better, you can choose numbered configurations and update them
+            individually for doing specific jobs. aplot -def # loads a specific
+            configuration (0 is the default), and keeping shift pressed when quitting
+            saves the current defaults into the selected configuration.
+        Aplot can now print to .fig files, for easy loading of panels into xfig,
+            allowing easier production of publication figures.
+ 3) aplot_label.c
+         Aplot's label plot can now stack labels vertically, or display ranges as
+            horizontal bars with vertical line edges, as opposed to the older
+            label-0 and label-1 system.  This new approach looks much nicer.
+        Aplot's label plot can now be printed.
+
+3/14/2000
+ aplotsrc/aplot_*.c
+    I've fixed a long-standing bug, whereby pressing certain keys on top of
+    any of the plots would cause aplot to crash.  The problem was that
+    several of the "Windows" keys are undefined symbols in X, and
+    XKeysymToString was returning NULL, which I didn't handle.
+
+9/14/2001
+ dataio/pcmwav.c
+    Removed the use of the tempnam() function, replacing it with mkstemp.
+
+12/15/2001
+ aplotsrc/colormap.c
+    Fixed the Hot colormap, which had a big bug in it that caused the upper
+    2/8 of the colormap to be wrong.  Thus, the really bright parts of the
+    signal were not colored right.  Amazingly enough, I hadn't noticed this,
+    mostly because it was like this from the beginning, and I think I
+    have just been automatically using a range that causes the signal to
+    fall into the lower 6/8 of the colormap...
+ aplotsrc/aplot_*.c
+     For some reason, and for some time now, Motif no longer returns
+    sequences like osfDelete and osfRight when the delete or right arrow
+    keys are pressed.  Instead, it just returns Delete and Right.  Thus,
+    things like zooming and panning had not been working.  Fixed.
+
+1/26/02
+    - Made a change in dataio/pcmseq2.c to have the tmp file opened
+        in /tmp instead of in the current directory.  Change
+        suggested by Michael Castelle (mcc@uchicago.edu) following
+        problems in aplot with reading files in directories where
+        user doesn't have write access.
+
+2/12/02
+    - Donour provided a patch that copied the code from osc_save()
+        to sono_save().  This lets a user save pcm data from an
+        sonograph now.  I haven't tested this.
+
+2/20/02
+    - Changed prototype of the event handler functions throughout to
+        add the last (Boolean *) argument.  I don't think this
+        changes anything much, but it's technically a bit more
+        correct.
+
+3/1/02
+    - Some cleanups to aplot_sono.c
+    - Replaced all use of the obsolete tmpnam() function with mkstemp().
+    - Major changes to libfft.a.  The API has now changed significantly,
+        and any other programs using it will need to be modified.  I've
+        cleaned up the API so it makes more sense, enabled the ability to
+        get the power spectral density of only a part of the frequency
+        range (utilizing the ability of MEM and MTM methods to do this
+        while maintaining resolution), and have made other cleanups.
+    - Change to libfft.a and aplot_sono plot... One can now resize the
+        y-axis on the sonogram by dragging with the left button on the
+        y-axis.
+    - libfft.a now handles resizing of the psd to fit the desired size.
+        It will do this for FFT (it doesn't interpolate yet, rather it
+        just chooses the nearest value), and for maximum entropy. 
+        For maximum entropy, I now take advantage of the FANTASTIC
+        resolution provided.  Of course, one runs the risk of having
+        spurious poles with MEM... and the significance of peaks can
+        be less certain than with FFT or MTM...
+    - I've broken mtm temporarily...
+    - Renamed aplotsrc/ to src/
+
+3/2/02
+    - Added support for the FFTW library - this is selectable on
+        compile-time.  It is enabled via a popup menu in aplot.
+    - Added menu entries in the sono plot for 1024 and 2048 sample
+        fft's.
+    - Major internal reorg in aplot_sono.c - I moved all the stuff
+        from the struct sono inside pdata, which was defined in aplot.h,
+        into aplot_sono.c's struct sonodata.  I'm going to do this for
+        all the plots, so as to force locality - the other aplot files
+        that include aplot.h don't need to know what stuff sono keeps.
+    - Wrote standard makefiles for everything, and dumped all the
+        Imakefiles I had been using.  This will hopefully make it
+        easier to compile for most people, and it will definitely
+        make it easier for me to maintain.
+    - Cleanups inside the mtm directory - only the needed files are
+        visible now.  The rest of them are tarred up.
+    - Wrote a README file.
+    - Added a rudimentary versioning system.
+
+3/7/02
+    - I note with interest that FFTW doesn't seem to be working right now. 
+        Not sure why.  It HAD been working.
+    - Added frequency range selection boxes to the main window.
+
+3/11/02
+    - Fixed bug in sono's postscript output code.  I'd failed to account
+        for all the changes associated with selecting a subset of the
+        entire frequency range.
+
+3/12/02
+    - Continued moving plot-specific data out of the "struct plotdata"
+        in aplot.h, and into plot-specific structures in each plot's
+        sourcefile.  (I'M NOW ALMOST HALF-WAY THERE)
+    - Made a change in dataio (suggested by Michael Castelle -
+        mcc@uchicago.edu) to switch from strstr() to checking the end
+        of the filename only.  This changes the code that recognizes
+        what format a particular file name corresponds to.
+    - Along the way, I decided to require toe_lis files to end in
+        .toe_lis, and not anything else. (I'll change if someone
+        other than Albert, who won't be complaining, complains. He's
+        the one who used .btoe_lis, .ztoe_lis, etc.
+    - I also decided to require raw pcm files to end in .pcm (or
+        .spcm).  Before, I'd accept almost any file as raw pcm as
+        long as it wasn't a toe_lis or lbl file, and wasn't recognized
+        as some other pcm file type.
+
+3/13/02
+    - Minor changes to Makefiles (ar clq appends to a library)
+    - Fix to sonogram.c: sonograms were appearing offset from oscillograms
+        (noticed by Pete Rauske).  I was attempting to make certain that
+        when I windows a sample before calculating the power spectral
+        density, that I centered the window on the sample.  However, I was
+        mistakenly making this correction in two places instead of one.
+        It is now done in a third place (window_samples), but only there.
+    - Finished moving plot-specific data out of the "struct plotdata"
+        in aplot.h, and into plot-specific structures in each plot's
+        sourcefile.
+    - Renamed struct plotdata to struct plot, typedefed to PLOT
+    - Renamed struct groupdata to struct group, typedefed to GROUP
+    - Renamed struct paneldata to struct panel, typedefed to PANEL
+
+3/31/02
+    - Fixed buglets in sonogram relating to toggling yaxis and xgrid
+
+4/6/02
+    - Changed to using new version of my sonogram library (used to be
+        called libfft.a, now libsono.a.   This library is now a separate
+        package, which must be installed prior to compiling aplot.
+    - This required some changes to makefiles and to aplot_sono.c, since
+        I also needed to make some libsono interface changes.
+
+3/9/03 (first change since internship :->)
+    - Split out the defaults handling code into aplot_defaults.*
+
+5/7/03
+    - one line change in aplot_sono.c to update the default colormap when
+        it has been changed.  Bug reported by Dan Margoliash.
+    - one line change in aplot_defaults.c to fix the reading of boolean
+        variables from the defaults file. strcasecmp to strncasecmp.  It
+        never set things to true before. (The defaults had all been false).
+        Bug reported by Dan Margoliash.
+
+5/10/03
+    - print out the timestamp when opening pcm files
+    - support microsecond time-stamp resolutions (modified dataio library)
+
+6/13/03
+    - add support for much larger size FFT's (note that at FFT's greater
+        than 4096, you really need to use the FFTW PSD Method, since the
+        built-in FFT method doesn't work well.  The FFTW technically
+        should be better in all respects than the built-in one, anyway.
+
+6/25/03
+    - Removed the dataio subdirectory and library from aplot - it is now
+        in it's own package, distributed separately, and must be compiled
+        and installed prior to compiling aplot.  dataio is now in the
+        libdataio package, and the license for dataio was changed to GPL.
+
+1/4/04
+    - Added support for microsecond time-stamp resolutions in the pcm_seq2
+        files that can be created by aplot's osc, sono, spectrum plots.
+        This capability was added to the dataio library on 5/10/03, but
+        aplot and saber weren't using it.
+    - Modified xm_attach.c to use stdarg.h instead of varargs.h.  GCC has
+        removed support for varargs.h.
+    - Added a video plot type (not finished yet).  This will play .avi
+        files recorded by saber in synch with .pcm_seq2 files that were
+        simultaneously recorded.  It will eventually also support saving
+        a frame to disk as a jpeg file, and printing a frame.  It may
+        even support saving a subset of frames into a new video file,
+        eventually.
+
+1/11/04
+    - Bugfixes: playtime* variables in aplot_panel.c, osc.c, sono.c, and
+        spectrum.c were changed to float from int.  This didn't have any
+        likely user-visible effect, but it's just more correct this way.
+    - Bugfixes: load_pcmdata() in aplot_panel.c now shows the timestamp
+        in those rare cases when it is unable to mmap() a file and must
+        resort to malloc().  Doubt this ever happens.
+
+5/5/04
+    - As suggested by Eric Fortune, I've added a command line argument
+        '-set' which can be used to override parameters.  E.g.
+        '-set gsmin=40 -set gsmax=80', etc.  Any parameter in the parameter
+        file can be set in this way.
+    - Added some more hotkeys.  To review, aplot has for a long time
+        supported the left and right arrows to scan backwards and forwards
+        in time in the plots.  Shift-left/right arrow always moved by half
+        the duration of the window instead of the full width.
+        What I've added are the following:
+            < (less than) : previous entry
+            > (greater than) : next entry
+            shift-p : play panel
+            shift-s : save panel data
+            ctrl-p : print panel to lpr
+        in sono:
+            = (equal) : decrease gsmax by 5
+            + (shift-equal) : increase gsmax by 5
+            - (minus) : decrease gsmin by 5
+            _ (shift-minus) : increase gsmax by 5
+
+5/8/04
+    - As recommended by Dan Margoliash, pressing the down key now zoom's
+        the panel even if no range is selected by the mouse.  By default,
+        it zooms to 10% of the currently displayed window.
+    - A new parameter is added called zoomfactor, which defaults to 0.10
+    - Many internal changes to reduce redundancy of code within the different
+        plot types.  I've added a new function pointer:
+        plot->plot_convert_pixel_to_time().
+    - Minor tweaks made to panleft and panright functions
+    - I now set xrangemin and xrangemax always right after data is loaded.
+        This clarifies the meaning of xrangemin and xrangemax and allows
+        removal of code for handling the case where these variables were
+        unset.
+    - BUG FIX: Fixed bug reported by Tim Gentner: aplot was creating empty
+        eps files for sonograms using multitaper or FFTW.  Correct eps
+        files were being created for FFT or maximum entropy methods.
+    - Fixed x-axis in eps output of ccor plot
+    - Numerous changes to code of all plots to focus on using
+        plot->group->xrangemin and plot->group->xrangemax as the only
+        references to the beginning and end of the range of data to be
+        plotted.  The plots had been using these parameters as well as
+        plot->group->start, plot->group->stop, plotdata->xmin, plotdata->xmax,
+        and it was getting too confusing for me.  The result is better
+        and much more readable code.  Also, the idea is to allow aplot
+        to be able to handle gracefully the situation where the user wants
+        to set the x-axes to a range that extends beyond the available data.
+        Currently, aplot automatically forces the range to the entire
+        available data, but what it should do is plot what it can within the
+        desired range, and leave the rest of the plot blank (or marked with
+        a hash pattern to indicate to the user the lack of data)
+    - Added a new parameter "outputwav" which defaults to TRUE.  The osc and
+        sono plots will now save data in .wav format, which allows for
+        preserving of samplerate information.  If this parameter is set to
+        FALSE, the old behavior (writing .pcm files) results. Thanks to Tim
+        Gentner for suggesting this change.
+
+5/9/04
+    - I've added sliders to the bottom of the panel for easier mouse
+        scrolling.  There are two sliders, one above the other. The
+        upper one decides the percentage of the total signal to be
+        displayed.  The lower one can be dragged around to scroll through
+        the data...
+    - One can disable the sliders via the 'showsliders' parameter, which
+        defaults to true.
+
+6/6/04
+    - Simplified the axes / grid drawing functions in aplot_x11.c and
+        aplot_postscript.c.  Many fewer conversions from samples to
+        milliseconds etc.  Fewer unnecessary parameters being passed.
+        Allowed some simplification of the label plot.
+    - Ctrl-q in a plot window now quits aplot.
+    - Fixed a bug in the label plot whereby entering a label would cause
+        unzooming of the plot to show the whole file. This would, of course,
+        be irritating in most practical situations.  Now the zoom is not
+        modified.
+
+7/4/04
+    - As suggested by Sylvan Shank, from Dan Margoliash's lab, I've added
+        support for the ctrl-a key, which selects the entire visible range,
+        allowing one to easily label the visible range something in a label
+        plot.
+
+8/6/04
+    - Added support for alsa audio, enabled by default but settable by the
+        'usealsa' default. (Actually, uncomment the stuff in the Makefile
+        to compile a version of aplot with it, then do the usealsa stuff)
+
+12/13/05
+    - Updated Makefile to remove -lg2c, which would be required if trying
+        to use the fortran MTM code in libsono.  Since I replaced that
+        with newer C code a while back, it is no longer included by default,
+        and thus, no need to link with g2c by default (especially since
+        g2c isn't installed on fedora core by default).
+    - Updated Makefile to link with FFTW3 instead of FFTW2.  This requires
+        my newer version of libsono
+    - Updated Makefile to -lmad (for mp3 file support) to the dataio
+        libs section.  You can uncomment this if mp3 support is enabled in
+        libdataio...
+
