@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
@@ -80,30 +79,6 @@ void close_oss(void)
 		dacfd = -1;
 	}
 	return;
-}
-
-
-/*************************************************************
-*************************************************************/
-int pollout_oss(int timeout_ms)
-{
-	struct pollfd writepollfds[1];
-	int writepollfds_count = 1;
-	int rc, revents;
-
-	writepollfds[0].fd = dacfd;
-	writepollfds[0].events = POLLOUT | POLLERR;
-	writepollfds[0].revents = 0;
-	do
-	{
-		rc = poll(writepollfds, writepollfds_count, timeout_ms);
-	} while ((rc == -1) && (errno == EINTR));
-	revents = writepollfds[0].revents;
-	if (revents & POLLOUT)
-		rc = 1;
-	if (revents & POLLERR)
-		rc = -1;
-	return rc;
 }
 
 

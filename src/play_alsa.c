@@ -20,8 +20,6 @@
 static char *pdevice = "hw:0,0";
 static snd_pcm_t *writehandle = NULL;
 static int writeframesize = 0;
-struct pollfd *writepollfds = NULL;
-int writepollfds_count = 0;
 
 static int setparams(snd_pcm_t *phandle, int ndacchans, int *dacrate_p);
 
@@ -47,15 +45,6 @@ int init_alsa(int dacrate, int ndacchans)
 
 	writeframesize = sizeof(short) * ndacchans;
 
-	writepollfds_count = snd_pcm_poll_descriptors_count(writehandle);
-	if (writepollfds_count <= 0)
-	{
-		fprintf(stderr, "alsa: Error getting poll descriptors for writing (%s)\n", pdevice);
-		goto finished;
-	}
-	writepollfds = malloc(sizeof(struct pollfd) * writepollfds_count);
-	snd_pcm_poll_descriptors(writehandle, writepollfds, writepollfds_count);
-
 	retval = 0;
 
 finished:
@@ -79,32 +68,8 @@ void close_alsa(void)
 		snd_pcm_close(writehandle);
 	}
 	writehandle = NULL;
-	if (writepollfds)
-		free(writepollfds);
-	writepollfds = NULL;
-	writepollfds_count = 0;
 	writeframesize = 0;
 	return;
-}
-
-
-/*************************************************************
-*************************************************************/
-int pollout_alsa(int timeout_ms)
-{
-	unsigned short revents;
-	int rc;
-
-	do
-	{
-		rc = poll(writepollfds, writepollfds_count, timeout_ms);
-	} while ((rc == -1) && (errno == EINTR));
-	snd_pcm_poll_descriptors_revents(writehandle, writepollfds, writepollfds_count, &revents);
-	if (revents & POLLOUT)
-		rc = 1;
-	if (revents & POLLERR)
-		rc = -1;
-	return rc;
 }
 
 

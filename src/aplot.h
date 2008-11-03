@@ -419,7 +419,6 @@ void report_size(PLOT *, char *);
 
 int init_oss(int dacrate, int ndacchans);
 void close_oss(void);
-int pollout_oss(int timeout_ms);
 int write_oss(short *databuf, int cnt);
 int trig_oss(void);
 
