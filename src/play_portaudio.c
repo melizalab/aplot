@@ -11,15 +11,17 @@ init_sound(int dacrate, int ndachans)
 	PaStreamParameters outputParameters;
 	PaError err;
 
-	int numDevices = Pa_GetDeviceCount();
-	if (numDevices < 1) {
-		fprintf(stderr, "No sound output devices!\n");
-		return -1;
-	}
 
 	/* -- initialize PortAudio -- */
 	err = Pa_Initialize();
 	if( err != paNoError ) goto error;
+	/* -- check for valid devices -- */
+	int numDevices = Pa_GetDeviceCount();
+	if (numDevices < 1) {
+		Pa_Terminate();
+		fprintf(stderr, "No sound output devices!\n");
+		return -1;
+	}
 
 	/* -- setup  output -- */
 	outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
