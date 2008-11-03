@@ -724,7 +724,6 @@ int panel_play(PANEL *pan)
 	cursor_set_busy(toplevel);
 	if (pan->numgroups >= 1) cursor_set_busy(pan->panel_shell);
 
-	fprintf(stdout, "Start playback\n");
 	/*
 	** We can mix up to four channels.  Find up to four different groups
 	** that are selected and ready to supply PCM data
@@ -765,7 +764,9 @@ int panel_play(PANEL *pan)
 	samplerate = plot1->group->samplerate;
 	if (samplerate == 0) samplerate = 20000;
 
-	init_sound(samplerate, channels);
+	status = init_sound(samplerate, channels);
+	if (status != 0)
+		goto PLAYFINISHED;
 
 	/*
 	** We play in stereo if we have more than one channel.  The second and fourth channels
@@ -864,7 +865,7 @@ int panel_play(PANEL *pan)
 		samples = NULL; nsamples = 0;
 		if ((plot1 == NULL) && (plot2 == NULL) && (plot3 == NULL) && (plot4 == NULL))
 			break;
-		if (write_sound(buf, SND_FRAMES_PER_BUFFER) != 0)
+		if ((status = write_sound(buf, SND_FRAMES_PER_BUFFER)) != 0)
 			break;
 
 		if (plot1 != NULL) panel_playmarker(plot1->group, playtime1);
