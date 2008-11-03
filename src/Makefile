@@ -1,33 +1,30 @@
 # Makefile 
 #
 #
-OPT_CFLAGS = -O2 -g2 -Wall
+
+CC=/usr/bin/gcc
+ARCH_CFLAGS = -O2 -g2
 PTHREAD_LIBS = -lpthread
 
 FFTW_DEPS = -DHAVE_FFTW3
 FFTW_LIBS = -lfftw3
 
-SONO_DEPS = -I/usr/local/include
-SONO_LIBS = -L/usr/local/lib -lsono
+INCLUDE_DIRS = -I/usr/local/include -I/usr/X11R6/include -I/sw/include
+LIB_DIRS = -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib -L/usr/local/lib64 -L/usr/X11R6/lib64
 
-DATAIO_DEPS = -I/usr/local/include
-DATAIO_LIBS = -ljpeg -L/usr/local/lib -ldataio # -lmad
+SONO_LIBS =  -lsono
+DATAIO_LIBS = -ljpeg -ldataio
+MOTIF_LIBS = -lXm -lXp -lXmu -lXt -lSM -lICE -lXext -lX11
+SOUND_LIBS =  -lportaudio
 
-MOTIF_DEPS = -I/usr/X11R6/include
-MOTIF_LIBS = -L/usr/X11R6/lib -lXm -lXp -lXmu -lXt -lSM -lICE -lXext -lX11
-
-#ALSA_DEPS = -DHAVE_ALSA
-#ALSA_LIBS = -lasound
-#ALSA_FILES = play_alsa.c
-
-CFLAGS	= ${OPT_CFLAGS} ${FFTW_DEPS} ${SONO_DEPS} ${DATAIO_DEPS} ${MOTIF_DEPS} ${ALSA_DEPS}
-ALL_LIBS = ${PTHREAD_LIBS} ${FFTW_LIBS} ${SONO_LIBS} ${DATAIO_LIBS} ${MOTIF_LIBS} ${ALSA_LIBS} -lm
+CFLAGS	= ${ARCH_CFLAGS} ${INCLUDE_DIRS}
+ALL_LIBS = ${LIB_DIRS} ${PTHREAD_LIBS} ${SONO_LIBS} ${FFTW_LIBS}  ${DATAIO_LIBS} ${MOTIF_LIBS} ${SOUND_LIBS} -lm
 
 SRCS = aplot.c aplot_ui.c aplot_panel.c aplot_misc.c xm_attach.c\
        aplot_label.c aplot_rast.c aplot_psth.c aplot_isi.c aplot_ccor.c\
 	   aplot_osc.c aplot_sono.c aplot_psip.c aplot_postscript.c\
 	   aplot_spectrum.c aplot_video.c \
-	   aplot_defaults.c play_oss.c ${ALSA_FILES} \
+	   aplot_defaults.c play_portaudio.c \
 	   aplot_x11.c XCC.c colormap.c
 HDRS = aplot.h aplot_defaults.h patchlevel.h XCC.h XCCP.h
 OBJS = $(SRCS:.c=.o)
@@ -38,10 +35,10 @@ BUILDVER := $(shell expr 1 + ${TVER})
 all: aplot
 
 aplot: ${OBJS} 
-	$(CC) ${OPT_CFLAGS} -o aplot $(OBJS) ${ALL_LIBS}
+	$(CC) ${CFLAGS} -o aplot $(OBJS) ${ALL_LIBS}
 
 aplot-static: ${OBJS}
-	$(CC) -static ${OPT_CFLAGS} -o aplot $(OBJS) ${ALL_LIBS}
+	$(CC) -static ${CFLAGS} -o aplot $(OBJS) ${ALL_LIBS}
 
 clean:
 	rm -f core $(OBJS) aplot

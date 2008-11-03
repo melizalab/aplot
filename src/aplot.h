@@ -5,6 +5,7 @@
 #include <X11/Xutil.h>
 #include "XCC.h"
 
+
 #include "pcmio.h"
 #include "lblio.h"
 #include "toeio.h"
@@ -40,7 +41,7 @@ typedef unsigned long ulong;
 #endif
 #endif
 
-typedef ulong boolean;
+typedef uint boolean;
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -49,6 +50,7 @@ typedef ulong boolean;
 #define SUCCESS 1
 #define ERROR 2
 
+#define SND_FRAMES_PER_BUFFER   (1024)
 
 #define MAXCOLORS 256			/* max possible colors */
 #define MAX_APP_COLORS 64		/* max colors used by this app */
@@ -417,21 +419,8 @@ int video_save(PLOT *pdata);
 
 void report_size(PLOT *, char *);
 
-int init_oss(int dacrate, int ndacchans);
-void close_oss(void);
-int write_oss(short *databuf, int cnt);
-int trig_oss(void);
+int init_sound(int dacrate, int ndacchans);
+void close_sound(void);
+int write_sound(short *databuf, int cnt);
 
-#ifdef HAVE_ALSA
-int init_alsa(int dacrate, int ndacchans);
-void close_alsa(void);
-int pollout_alsa(int timeout_ms);
-int write_alsa(short *databuf, int cnt);
-int trig_alsa(void);
-#else
-#define init_alsa(a,b) init_oss(a,b)
-#define close_alsa() close_oss()
-#define pollout_alsa(a) pollout_oss(a)
-#define write_alsa(a,b) write_oss(a,b)
-#define trig_alsa() trig_oss()
-#endif
+

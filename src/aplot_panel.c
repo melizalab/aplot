@@ -714,17 +714,17 @@ int panel_save(PANEL *pan)
 int panel_play(PANEL *pan)
 {
 	int status = SUCCESS;
-#ifdef linux
 	GROUP *group;
 	PLOT *plot, *plot1, *plot2, *plot3, *plot4;
 	float playtime1, playtime2, playtime3, playtime4;
-	short buf[2000], *samples, *ptr;
+	short buf[SND_FRAMES_PER_BUFFER * 2], *samples, *ptr;
 	int i, samplerate, nsamples, channels;
 	int reqoffset1, reqoffset2, reqoffset3, reqoffset4;
 
 	cursor_set_busy(toplevel);
 	if (pan->numgroups >= 1) cursor_set_busy(pan->panel_shell);
 
+	fprintf(stdout, "Start playback\n");
 	/*
 	** We can mix up to four channels.  Find up to four different groups
 	** that are selected and ready to supply PCM data
@@ -765,10 +765,7 @@ int panel_play(PANEL *pan)
 	samplerate = plot1->group->samplerate;
 	if (samplerate == 0) samplerate = 20000;
 
-	if (defaults.usealsa)
-		init_alsa(samplerate, channels);
-	else
-		init_oss(samplerate, channels);
+	init_sound(samplerate, channels);
 
 	/*
 	** We play in stereo if we have more than one channel.  The second and fourth channels
@@ -781,10 +778,11 @@ int panel_play(PANEL *pan)
 	reqoffset1 = reqoffset2 = reqoffset3 = reqoffset4 = 0;
 	for(;;)
 	{
-		memset(buf, '\0', 2000 * sizeof(short));
+		memset(buf, '\0', SND_FRAMES_PER_BUFFER * 2 * sizeof(short));
 		if (plot1 != NULL)
 		{
-			status = (*(plot1->plot_play))(plot1, reqoffset1, 1000, &samples, &nsamples, &playtime1);
+			status = (*(plot1->plot_play))(plot1, reqoffset1, SND_FRAMES_PER_BUFFER,
+						       &samples, &nsamples, &playtime1);
 			if (nsamples == 0)
 			{
 				panel_playmarker(plot1->group, -1.0);
@@ -804,7 +802,7 @@ int panel_play(PANEL *pan)
 		samples = NULL; nsamples = 0;
 		if (plot2 != NULL)
 		{
-			status = (*(plot2->plot_play))(plot2, reqoffset2, 1000, &samples, &nsamples, &playtime2);
+			status = (*(plot2->plot_play))(plot2, reqoffset2, SND_FRAMES_PER_BUFFER, &samples, &nsamples, &playtime2);
 			if (nsamples == 0)
 			{
 				panel_playmarker(plot2->group, -1.0);
@@ -824,7 +822,8 @@ int panel_play(PANEL *pan)
 		samples = NULL; nsamples = 0;
 		if (plot3 != NULL)
 		{
-			status = (*(plot3->plot_play))(plot3, reqoffset3, 1000, &samples, &nsamples, &playtime3);
+			status = (*(plot3->plot_play))(plot3, reqoffset3, SND_FRAMES_PER_BUFFER,
+						       &samples, &nsamples, &playtime3);
 			if (nsamples == 0)
 			{
 				panel_playmarker(plot3->group, -1.0);
@@ -844,7 +843,8 @@ int panel_play(PANEL *pan)
 		samples = NULL; nsamples = 0;
 		if (plot4 != NULL)
 		{
-			status = (*(plot4->plot_play))(plot4, reqoffset4, 1000, &samples, &nsamples, &playtime4);
+			status = (*(plot4->plot_play))(plot4, reqoffset4, SND_FRAMES_PER_BUFFER,
+						       &samples, &nsamples, &playtime4);
 			if (nsamples == 0)
 			{
 				panel_playmarker(plot4->group, -1.0);
@@ -864,25 +864,20 @@ int panel_play(PANEL *pan)
 		samples = NULL; nsamples = 0;
 		if ((plot1 == NULL) && (plot2 == NULL) && (plot3 == NULL) && (plot4 == NULL))
 			break;
-		if (defaults.usealsa)
-			write_alsa(buf, 1000 * channels * sizeof(short));
-		else
-			write_oss(buf, 1000 * channels * sizeof(short));
+		if (write_sound(buf, SND_FRAMES_PER_BUFFER) != 0)
+			break;
+
 		if (plot1 != NULL) panel_playmarker(plot1->group, playtime1);
 		if (plot2 != NULL) panel_playmarker(plot2->group, playtime2);
 		if (plot3 != NULL) panel_playmarker(plot3->group, playtime3);
 		if (plot4 != NULL) panel_playmarker(plot4->group, playtime4);
 	}
-	if (defaults.usealsa)
-		close_alsa();
-	else
-		close_oss();
+	close_sound();
 
 PLAYFINISHED:
 	if (pan->numgroups >= 1) cursor_unset_busy(pan->panel_shell);
 	cursor_unset_busy(toplevel);
 
-#endif
 	return status;
 }
 
