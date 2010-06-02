@@ -12,13 +12,14 @@ FFTW_LIBS = -lfftw3
 INCLUDE_DIRS = -I/usr/local/include -I/usr/X11R6/include -I/sw/include
 LIB_DIRS = -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib -L/usr/local/lib64 -L/usr/X11R6/lib64
 
+HDF5_LIBS = -lhdf5
 SONO_LIBS =  -lsono
 DATAIO_LIBS = -ljpeg -ldataio
 MOTIF_LIBS = -lXm -lXp -lXmu -lXt -lSM -lICE -lXext -lX11
 SOUND_LIBS =  -lportaudio
 
 CFLAGS	= ${ARCH_CFLAGS} ${INCLUDE_DIRS}
-ALL_LIBS = ${LIB_DIRS} ${PTHREAD_LIBS} ${SONO_LIBS} ${FFTW_LIBS}  ${DATAIO_LIBS} ${MOTIF_LIBS} ${SOUND_LIBS} -lm
+ALL_LIBS = ${LIB_DIRS} ${PTHREAD_LIBS} ${SONO_LIBS} ${FFTW_LIBS}  ${DATAIO_LIBS} ${MOTIF_LIBS} ${SOUND_LIBS} ${HDF5_LIBS} -lm
 
 SRCS = aplot.c aplot_ui.c aplot_panel.c aplot_misc.c xm_attach.c\
        aplot_label.c aplot_rast.c aplot_psth.c aplot_isi.c aplot_ccor.c\
