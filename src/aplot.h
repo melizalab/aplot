@@ -1,7 +1,8 @@
+#include <stdio.h>
 #include <Xm/Xm.h>
 #include <Xm/PanedW.h>
-#include <X11/StringDefs.h>  
-#include <X11/Intrinsic.h> 
+#include <X11/StringDefs.h>
+#include <X11/Intrinsic.h>
 #include <X11/Xutil.h>
 #include "XCC.h"
 
@@ -296,18 +297,18 @@ void panel_zoom(PANEL *panel, float tmin, float tmax);
 void panel_unzoom(PANEL *panel);
 void update_fields(PANEL *pan);
 
-int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int entry, 
+int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int entry,
 	short **samples_p, int *nsamples_p, int *samplerate_p, float *start_p, float *stop_p,
 	unsigned long long *ntime_p);
 
-int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int entry, 
+int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int entry,
 	int *lblcount_p, float **lbltimes_p, char ***lblnames_p, float *start_p, float *stop_p);
 
 int load_toedata(TOEFILE **toefp_p, char *loadedfilename, char *filename, int entry, int unit,
 	int *datacount_p, int *nunits_p, int *nreps_p, int **repcounts_p, float ***repptrs_p,
 	float *start_p, float *stop_p);
 
-int load_viddata(VIDFILE **vidfp_p, char *loadedfilename, char *filename, int entry, 
+int load_viddata(VIDFILE **vidfp_p, char *loadedfilename, char *filename, int entry,
 	int *nframes_p, int *width_p, int *height_p, int *ncomps_p, int *microsecs_per_frame_p,
 	unsigned long long *ntime_p);
 

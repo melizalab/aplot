@@ -5,18 +5,17 @@
 
 PaStream *stream;
 
-int 
+int
 init_sound(int dacrate, int ndachans)
 {
 	PaStreamParameters outputParameters;
 	PaError err;
 
-
 	/* -- initialize PortAudio -- */
 	err = Pa_Initialize();
 	if( err != paNoError ) goto error;
 	/* -- check for valid devices -- */
-	int numDevices = Pa_GetDeviceCount();
+	int numDevices = Pa_CountDevices();
 	if (numDevices < 1) {
 		Pa_Terminate();
 		fprintf(stderr, "No sound output devices!\n");
@@ -31,7 +30,7 @@ init_sound(int dacrate, int ndachans)
 	outputParameters.hostApiSpecificStreamInfo = NULL;
 
 	/* -- setup stream -- */
-	err = Pa_OpenStream(
+	err = Pa_OpenDefaultStream(
 		&stream,
 		NULL,
 		&outputParameters,
@@ -53,7 +52,7 @@ error:
 	return -1;
 }
 
-void 
+void
 close_sound(void) {
 
 	if (stream) {

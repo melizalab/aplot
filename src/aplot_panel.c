@@ -82,7 +82,7 @@ void new_scale_value(Widget scale_w, XtPointer client_data, XtPointer call_data)
 	increment = maximum = minimum = page_incr = slider_size = value = 0;
 	XtVaGetValues(sb,
 		XmNincrement, &increment,
-		XmNmaximum, &maximum, 
+		XmNmaximum, &maximum,
 		XmNminimum, &minimum,
 		XmNpageIncrement, &page_incr,
 		XmNsliderSize, &slider_size,
@@ -113,7 +113,7 @@ void new_scrollbar_value(Widget scrollbar_w, XtPointer client_data, XtPointer ca
 	increment = maximum = minimum = page_incr = slider_size = value = 0;
 	XtVaGetValues(scrollbar_w,
 		XmNincrement, &increment,
-		XmNmaximum, &maximum, 
+		XmNmaximum, &maximum,
 		XmNminimum, &minimum,
 		XmNpageIncrement, &page_incr,
 		XmNsliderSize, &slider_size,
@@ -713,6 +713,9 @@ int panel_save(PANEL *pan)
 
 int panel_play(PANEL *pan)
 {
+#ifndef HAVE_PORTAUDIO
+        return SUCCESS;
+#else
 	int status = SUCCESS;
 	GROUP *group;
 	PLOT *plot, *plot1, *plot2, *plot3, *plot4;
@@ -774,7 +777,7 @@ int panel_play(PANEL *pan)
 	** We keep cycling through the four channels (plots), asking them for data to play.
 	** We are finished when all of them are finished.
 	** There's some trickery here to make sure things are smooth if some channels finish
-	** before the others. 
+	** before the others.
 	*/
 	reqoffset1 = reqoffset2 = reqoffset3 = reqoffset4 = 0;
 	for(;;)
@@ -880,6 +883,7 @@ PLAYFINISHED:
 	cursor_unset_busy(toplevel);
 
 	return status;
+#endif
 }
 
 void panel_clearmarks(PANEL *panel)
@@ -1297,7 +1301,7 @@ void panel_handle_keyrelease(Widget w, PLOT *plot, XKeyEvent *keyevent, char *ke
 	}
 }
 
-int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int entry, 
+int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int entry,
 	short **samples_p, int *nsamples_p, int *samplerate_p, float *start_p, float *stop_p,
 	unsigned long long *ntime_p)
 {
@@ -1313,7 +1317,7 @@ int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int en
 	samplerate = *samplerate_p;
 
 	/*
-	** If the file isn't already loaded, or it is loaded but has changed, 
+	** If the file isn't already loaded, or it is loaded but has changed,
 	** then we need to free what we have and open the new file
 	*/
 	if ((samples == NULL) || (strcmp(filename, loadedfilename)))
@@ -1399,7 +1403,7 @@ int load_pcmdata(PCMFILE **pcmfp_p, char *loadedfilename, char *filename, int en
 }
 
 
-int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int entry, 
+int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int entry,
 	int *lblcount_p, float **lbltimes_p, char ***lblnames_p, float *start_p, float *stop_p)
 {
 	PCMFILE *pcmfp;
@@ -1463,7 +1467,7 @@ int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int en
 	{
 		/*
 		** We were able to open the label file.  We choose as our length, the
-		** longest label...  I'm not sure why I'm not assuming that the labels 
+		** longest label...  I'm not sure why I'm not assuming that the labels
 		** are sorted here (I could just use the last label as the max.
 		*/
 		if (lbl_read(lblfp, &lbltimes, &lblnames, &lblcount) != -1)
@@ -1494,7 +1498,7 @@ int load_lbldata(LBLFILE **lblfp_p, char *loadedfilename, char *filename, int en
 	return rc;
 }
 
-int load_toedata(TOEFILE **toefp_p, char *loadedfilename, char *filename, int entry, int unit, 
+int load_toedata(TOEFILE **toefp_p, char *loadedfilename, char *filename, int entry, int unit,
 	int *datacount_p, int *nunits_p, int *nreps_p, int **repcounts_p, float ***repptrs_p,
 	float *start_p, float *stop_p)
 {
@@ -1568,7 +1572,7 @@ int load_toedata(TOEFILE **toefp_p, char *loadedfilename, char *filename, int en
 }
 
 
-int load_viddata(VIDFILE **vidfp_p, char *loadedfilename, char *filename, int entry, 
+int load_viddata(VIDFILE **vidfp_p, char *loadedfilename, char *filename, int entry,
 	int *nframes_p, int *width_p, int *height_p, int *ncomps_p, int *microsecs_per_frame_p,
 	unsigned long long *ntime_p)
 {
@@ -1579,7 +1583,7 @@ int load_viddata(VIDFILE **vidfp_p, char *loadedfilename, char *filename, int en
 	vidfp = *vidfp_p;
 
 	/*
-	** If the file isn't already loaded, or it is loaded but has changed, 
+	** If the file isn't already loaded, or it is loaded but has changed,
 	** then we need to free what we have and open the new file
 	*/
 	if ((vidfp == NULL) || (strcmp(filename, loadedfilename)))
