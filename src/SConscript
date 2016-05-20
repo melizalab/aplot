@@ -1,0 +1,20 @@
+import os
+Import('env')
+
+penv = env.Clone()
+penv.Append(CPPPATH=["#libsono"], LIBPATH=["#libsono"])
+penv.Append(LIBS=["Xm"])
+# , "Xp", "Xmu", "Xt", "SM", "ICE", "Xext", "Xft", "fontconfig", "Xrender",
+#                   "freetype", "expat", "X11", "xcb", "Xau", "Xdmcp",
+#                   "sono", "dataio"])
+penv.ParseConfig("pkg-config xp xmu xt sm ice xext xft fontconfig xrender freetype2 xcb xau xdmcp --cflags --libs")
+penv.ParseConfig("pkg-config hdf5 libjpeg --cflags --libs")
+penv.Append(LIBS=["sono", "dataio"])
+
+
+srcs = "aplot.c aplot_ui.c aplot_panel.c aplot_misc.c xm_attach.c aplot_label.c aplot_rast.c aplot_psth.c aplot_isi.c aplot_ccor.c aplot_osc.c aplot_sono.c aplot_psip.c aplot_postscript.c aplot_spectrum.c aplot_video.c aplot_defaults.c aplot_x11.c XCC.c colormap.c".split(" ")
+hdrs = "aplot.h aplot_defaults.h patchlevel.h XCC.h XCCP.h".split(" ")
+
+prog = penv.Program("aplot", srcs)
+env.Alias("aplot", prog)
+env.Alias("install", env.Install(os.path.join(env['PREFIX'], "bin"), prog))

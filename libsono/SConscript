@@ -1,0 +1,7 @@
+import os
+Import('env')
+
+lib = env.Library("sono", [env.Glob("*.c")])
+env.Alias("sono", lib)
+
+Return('lib')

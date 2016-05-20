@@ -37,14 +37,14 @@
             o label - text markers that label times or spans of time
             o raster - neuronal spikes as dots relative to an event
             o PSTH - histogram of neuronal activity relative to an event
-            o ISI - histogram of inter-spike intervals 
+            o ISI - histogram of inter-spike intervals
             o a few other plots
 
        It has been extensively used and developed over almost 8 years,
        primarily for the study of neuronal and microphone recordings
        in an auditory and motor neurophysiology setting.
 
-       In addition to visualizing data on-screen, aplot can produce 
+       In addition to visualizing data on-screen, aplot can produce
        high quality postscript and EPS printouts and saved files of
        these plots.  The encapsulated postscript files can be imported
        into commercial drawing programs such as CorelDraw(TM).
@@ -89,8 +89,8 @@
         (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
         USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
         DAMAGE.
+xo
 
-        
     4.  REQUIREMENTS
     ----------------
         To compile, aplot requires:
@@ -107,16 +107,13 @@
 
     5.  INSTALL
     -----------
-        The following should work (:->):
-            $ make clean
-            $ make depend
-            $ make
-            $ make install
+
+        See INSTALL file for instructions
 
 
     6.  FIRST-TIME USAGE
     --------------------
-        
+
 
     7.  FAQ
     -------
@@ -138,7 +135,7 @@
                 {
                     /* do something */
                 }
-            I use 4 character width tabs.  
+            I use 4 character width tabs.
             And by the way, vile/xvile is the editor of kings.
 
         <under construction>
@@ -158,11 +155,10 @@
           Mann, M.E. and Lees, J.M., 1996: Robust estimation of background noise
             and signal detection in climatic time series, Clim. Change, 33, 409-445.
 
-        And some other references to MTM methods: 
+        And some other references to MTM methods:
 
           Allen, M.R., and Smith, L.A., 1996: Monte Carlo SSA: detecting
             oscillations in the presence of coloured noise. J. Climate, 9, 3373.
 
           Vautard, R., Yiou, P., and Ghil, M., 1992: Singular-spectrum analysis:
             A toolkit for short, noisy chaotic signals, Physica D, 58, 95-126.
-

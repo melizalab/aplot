@@ -15,18 +15,18 @@
 
 typedef struct
 {
-	float x1, y1, x2, y2;
+        float x1, y1, x2, y2;
 } PSSegment;
 
 typedef struct
 {
-	float x, y;
+        float x, y;
 } PSPoint;
 
 typedef struct
 {
-	float x, y;
-	float width, height;
+        float x, y;
+        float width, height;
 } PSRectangle;
 
 void PSInit(FILE *fp, char *filename, int width, int height);
@@ -159,430 +159,429 @@ static char *parentprolog = "\
 
 void PSInit(FILE *fp, char *filename, int width, int height)
 {
-	time_t t;
+        time_t t;
 
-	/*
-	** Write the prolog
-	*/
-	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
-	fprintf(fp, "%%%%BoundingBox: %d %d %d %d\n", 18, 18, 18 + width, 18 + height);
-	fprintf(fp, "%%%%Title: %s\n", filename);
-	time(&t);
-	fprintf(fp, "%%%%CreationDate: %s\n\n", ctime(&t));
+        /*
+        ** Write the prolog
+        */
+        fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
+        fprintf(fp, "%%%%BoundingBox: %d %d %d %d\n", 18, 18, 18 + width, 18 + height);
+        fprintf(fp, "%%%%Title: %s\n", filename);
+        time(&t);
+        fprintf(fp, "%%%%CreationDate: %s\n\n", ctime(&t));
 
-	/*
-	** Set up our coordinate system
-	*/
-	fprintf(fp, "gsave\n");
-	fprintf(fp, "18 18 translate\n");
-	fprintf(fp, "75 75 div dup scale\n");
+        /*
+        ** Set up our coordinate system
+        */
+        fprintf(fp, "gsave\n");
+        fprintf(fp, "18 18 translate\n");
+        fprintf(fp, "75 75 div dup scale\n");
 
-	/*
-	** Write some routines we'll use commonly
-	*/
-	fprintf(fp, prolog);
+        /*
+        ** Write some routines we'll use commonly
+        */
+        fputs(prolog, fp);
 
-	/*
-	** Set up a clipping rectangle
-	*/
-	fprintf(fp, "0 0 moveto\n");
-	fprintf(fp, "%d 0 lineto\n", width);
-	fprintf(fp, "%d %d lineto\n", width, height);
-	fprintf(fp, "0 %d lineto\n", height);
-	fprintf(fp, "closepath clip\n");
-	fprintf(fp, "newpath\n");
+        /*
+        ** Set up a clipping rectangle
+        */
+        fprintf(fp, "0 0 moveto\n");
+        fprintf(fp, "%d 0 lineto\n", width);
+        fprintf(fp, "%d %d lineto\n", width, height);
+        fprintf(fp, "0 %d lineto\n", height);
+        fprintf(fp, "closepath clip\n");
+        fprintf(fp, "newpath\n");
 }
 
 void PSFinish(FILE *fp)
 {
-	fprintf(fp, "showpage grestore\n");
+        fprintf(fp, "showpage grestore\n");
 }
 
 void PSDrawLine(FILE *fp, int x1, int y1, int x2, int y2)
 {
-	fprintf(fp, "%d %d %d %d l\n", x1, y1, x2, y2);
+        fprintf(fp, "%d %d %d %d l\n", x1, y1, x2, y2);
 }
 
 void PSDrawLineFP(FILE *fp, float x1, float y1, float x2, float y2)
 {
-	fprintf(fp, "%f %f %f %f l\n", x1, y1, x2, y2);
+        fprintf(fp, "%f %f %f %f l\n", x1, y1, x2, y2);
 }
 
 void PSDrawLines(FILE *fp, XPoint *pts, int nsegs)
 {
-	int i;
+        int i;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=1; i < nsegs; i++)
-		PSDrawLine(fp, pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=1; i < nsegs; i++)
+                PSDrawLine(fp, pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
 }
 
 void PSDrawLinesFP(FILE *fp, PSPoint *pts, int nsegs)
 {
-	int i, counter;
+        int i, counter;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=1, counter = 0; i < nsegs; i++)
-	{
-		if (counter++ == 0)
-		{
-			fprintf(fp, "%f %f moveto\n", pts[i-1].x, pts[i-1].y);
-		}
-		fprintf(fp, "%f %f rl\n", pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
-		if (counter == 100)
-		{
-			counter = 0;
-			fprintf(fp, "stroke\n");
-		}
-	}
-	if (counter > 0)
-		fprintf(fp, "stroke\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=1, counter = 0; i < nsegs; i++)
+        {
+                if (counter++ == 0)
+                {
+                        fprintf(fp, "%f %f moveto\n", pts[i-1].x, pts[i-1].y);
+                }
+                fprintf(fp, "%f %f rl\n", pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+                if (counter == 100)
+                {
+                        counter = 0;
+                        fprintf(fp, "stroke\n");
+                }
+        }
+        if (counter > 0)
+                fprintf(fp, "stroke\n");
 }
 
 void PSDrawFBoxFP(FILE *fp, float width, float height, float bottom, float left)
 {
-	fprintf(fp, "%f %f %f %f fillrect\n", width, height, bottom, left);
+        fprintf(fp, "%f %f %f %f fillrect\n", width, height, bottom, left);
 }
 
 void PSFillRectangles(FILE *fp, PSRectangle *rects, int nrects)
 {
-	int i;
+        int i;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nrects; i++)
-	{
-		PSDrawFBoxFP(fp, rects[i].width, rects[i].height, rects[i].x, rects[i].y);
-	}
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nrects; i++)
+        {
+                PSDrawFBoxFP(fp, rects[i].width, rects[i].height, rects[i].x, rects[i].y);
+        }
 }
 
 void PSDrawFBoxesFP(FILE *fp, PSPoint *pts, int nsegs, float width, float y)
 {
-	int i;
+        int i;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nsegs; i++)
-	{
-		PSDrawFBoxFP(fp, width, pts[i].y, pts[i].x, y);
-	}
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nsegs; i++)
+        {
+                PSDrawFBoxFP(fp, width, pts[i].y, pts[i].x, y);
+        }
 }
 
 void PSDrawPoints(FILE *fp, XPoint *pts, int nsegs)
 {
-	int i;
-	char dottype;
+        int i;
+        char dottype;
 
-	switch (pref_dottype)
-	{
-		case 1:	dottype = 'e'; break;
-		case 2:	dottype = 'f'; break;
-		case 0:
-		default: dottype = 'd'; break;
-	}
-	fprintf(fp, "gsave\n");
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nsegs; i++)
-		fprintf(fp, "%d %d %c\n", pts[i].x, pts[i].y, dottype);
-	fprintf(fp, "stroke grestore\n");
+        switch (pref_dottype)
+        {
+                case 1: dottype = 'e'; break;
+                case 2: dottype = 'f'; break;
+                case 0:
+                default: dottype = 'd'; break;
+        }
+        fprintf(fp, "gsave\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nsegs; i++)
+                fprintf(fp, "%d %d %c\n", pts[i].x, pts[i].y, dottype);
+        fprintf(fp, "stroke grestore\n");
 }
 
 void PSDrawPointsFP(FILE *fp, PSPoint *pts, int nsegs)
 {
-	int i;
-	char dottype;
+        int i;
+        char dottype;
 
-	switch (pref_dottype)
-	{
-		case 1:	dottype = 'e'; break;
-		case 2:	dottype = 'f'; break;
-		case 0:
-		default: dottype = 'd'; break;
-	}
-	fprintf(fp, "gsave\n");
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nsegs; i++)
-		fprintf(fp, "%f %f %c\n", pts[i].x, pts[i].y, dottype);
-	fprintf(fp, "stroke grestore\n");
+        switch (pref_dottype)
+        {
+                case 1: dottype = 'e'; break;
+                case 2: dottype = 'f'; break;
+                case 0:
+                default: dottype = 'd'; break;
+        }
+        fprintf(fp, "gsave\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nsegs; i++)
+                fprintf(fp, "%f %f %c\n", pts[i].x, pts[i].y, dottype);
+        fprintf(fp, "stroke grestore\n");
 }
 
 void PSDrawSpikesFP(FILE *fp, PSPoint *pts, int nsegs)
 {
-	int i;
-	char dottype;
+        int i;
+        char dottype;
 
-	dottype = 'g';
-	fprintf(fp, "gsave\n");
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nsegs; i++)
-	{
+        dottype = 'g';
+        fprintf(fp, "gsave\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nsegs; i++)
+        {
 #ifndef notdef
-		fprintf(fp, "%f ", pts[i].x);
-		if ((pts[i].y - floor(pts[i].y)) < 0.00001)
-			fprintf(fp, "%d ", (int)pts[i].y);
-		else
-			fprintf(fp, "%f ", pts[i].y);
-		fprintf(fp, " %c\n", dottype);
+                fprintf(fp, "%f ", pts[i].x);
+                if ((pts[i].y - floor(pts[i].y)) < 0.00001)
+                        fprintf(fp, "%d ", (int)pts[i].y);
+                else
+                        fprintf(fp, "%f ", pts[i].y);
+                fprintf(fp, " %c\n", dottype);
 #else
-		fprintf(fp, "%f %f %c\n", pts[i].x, pts[i].y, dottype);
+                fprintf(fp, "%f %f %c\n", pts[i].x, pts[i].y, dottype);
 #endif
-	}
-	fprintf(fp, "stroke grestore\n");
+        }
+        fprintf(fp, "stroke grestore\n");
 }
 
 void PSDrawSegments(FILE *fp, XSegment *segs, int nsegs)
 {
-	int i;
+        int i;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=0; i < nsegs; i++)
-		PSDrawLine(fp, segs[i].x1, segs[i].y1, segs[i].x2, segs[i].y2);
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=0; i < nsegs; i++)
+                PSDrawLine(fp, segs[i].x1, segs[i].y1, segs[i].x2, segs[i].y2);
 }
 
 void PSDrawSegmentsFP(FILE *fp, PSSegment *segs, int nsegs)
 {
-	int i, counter;
+        int i, counter;
 
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
-	for (i=1, counter = 0; i < nsegs; i++)
-	{
-		if (counter++ == 0)
-		{
-			fprintf(fp, "%g %f mt %g %f rl\n", segs[i-1].x1, segs[i-1].y1, segs[i-1].x2 - segs[i-1].x1, segs[i-1].y2 - segs[i-1].y1);
-		}
-		fprintf(fp, "%g %f rm %g %f rl\n", segs[i].x1 - segs[i-1].x2, segs[i].y1 - segs[i-1].y2, segs[i].x2 - segs[i].x1, segs[i].y2 - segs[i].y1);
-		if (counter == 100)
-		{
-			counter = 0;
-			fprintf(fp, "stroke\n");
-		}
-	}
-	if (counter > 0)
-		fprintf(fp, "stroke\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor 0.50 setlinewidth\n");
+        for (i=1, counter = 0; i < nsegs; i++)
+        {
+                if (counter++ == 0)
+                {
+                        fprintf(fp, "%g %f mt %g %f rl\n", segs[i-1].x1, segs[i-1].y1, segs[i-1].x2 - segs[i-1].x1, segs[i-1].y2 - segs[i-1].y1);
+                }
+                fprintf(fp, "%g %f rm %g %f rl\n", segs[i].x1 - segs[i-1].x2, segs[i].y1 - segs[i-1].y2, segs[i].x2 - segs[i].x1, segs[i].y2 - segs[i].y1);
+                if (counter == 100)
+                {
+                        counter = 0;
+                        fprintf(fp, "stroke\n");
+                }
+        }
+        if (counter > 0)
+                fprintf(fp, "stroke\n");
 }
 
 void PSDrawXAxisLabel(FILE *fp, char *string, int x, int y, int width)
 {
-	fprintf(fp, "newpath\n");
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
-/*	fprintf(fp, "(%s) stringwidth pop 2 div neg %d add %d 13 neg add moveto\n", string, x, y); */
-	fprintf(fp, "(%s) stringwidth pop 2 div neg %d add dup 0 lt {pop 0} if dup (%s) stringwidth pop add %d gt {pop %d (%s) stringwidth pop sub} if %d 13 sub moveto\n", string, x, string, width, width, string, y);
-	fprintf(fp, "(%s) show\n", string);
+        fprintf(fp, "newpath\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
+/*      fprintf(fp, "(%s) stringwidth pop 2 div neg %d add %d 13 neg add moveto\n", string, x, y); */
+        fprintf(fp, "(%s) stringwidth pop 2 div neg %d add dup 0 lt {pop 0} if dup (%s) stringwidth pop add %d gt {pop %d (%s) stringwidth pop sub} if %d 13 sub moveto\n", string, x, string, width, width, string, y);
+        fprintf(fp, "(%s) show\n", string);
 }
 
 void PSDrawHorizText(FILE *fp, char *string, float x, float y)
 {
-	fprintf(fp, "newpath\n");
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
-	fprintf(fp, "%f %f moveto (%s) show\n", x, y, string);
+        fprintf(fp, "newpath\n");
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
+        fprintf(fp, "%f %f moveto (%s) show\n", x, y, string);
 }
 
 void PSDrawYAxisLabel(FILE *fp, char *string, int x, int y)
 {
-	fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
-	fprintf(fp, "(%s) stringwidth pop neg %d add 3 neg add %d 2 neg add moveto\n", string, x, y);
-	fprintf(fp, "(%s) show\n", string);
+        fprintf(fp, "0.00 0.00 0.00 setrgbcolor /Times-Roman findfont 0010 scalefont setfont\n");
+        fprintf(fp, "(%s) stringwidth pop neg %d add 3 neg add %d 2 neg add moveto\n", string, x, y);
+        fprintf(fp, "(%s) show\n", string);
 }
 
 void PSDrawXAxis(FILE *fp, int offx, int offy, int offx2, int offy2, int width, int height, float x0, float x1)
 {
-	int ticpixel = 0;
-	float inc, start, stop, tic;
-	char buf[80];
+        int ticpixel = 0;
+        float inc, start, stop, tic;
+        char buf[80];
 
-	/*
-	** Draw X axis
-	*/
-	PSDrawLine(fp, offx, offy2, width + offx, offy2);
+        /*
+        ** Draw X axis
+        */
+        PSDrawLine(fp, offx, offy2, width + offx, offy2);
 
-	/*
-	** Compute where to put the tick marks.
-	** First, convert xmin and xmax into milliseconds.
-	** The result of this computation will be a {start, inc, stop}
-	*/
-	if (x0 >= x1)
-		return;
-	inc = make_tics(x0, x1);
-	start = inc * floor(x0/inc);
-	stop = inc * ceil(x1/inc);
+        /*
+        ** Compute where to put the tick marks.
+        ** First, convert xmin and xmax into milliseconds.
+        ** The result of this computation will be a {start, inc, stop}
+        */
+        if (x0 >= x1)
+                return;
+        inc = make_tics(x0, x1);
+        start = inc * floor(x0/inc);
+        stop = inc * ceil(x1/inc);
 
-	/*
-	** Convert {start, stop, inc} from time to pixel coordinates.
-	** Then draw the tick mark and the tick label.
-	*/
-	for (tic = start; tic <= stop; tic += inc)
-	{
-		if ((tic < x0) || (tic > x1))
-			continue;
-		ticpixel = CONV_TIME_TO_X(tic, x0, x1, width, offx);
-		PSDrawLine(fp, ticpixel, offy2 + 3, ticpixel, offy2 - 3);
-		sprintf(buf, "%g", tic);
-		PSDrawXAxisLabel(fp, buf, ticpixel, offy2, offx + width);
-	}
+        /*
+        ** Convert {start, stop, inc} from time to pixel coordinates.
+        ** Then draw the tick mark and the tick label.
+        */
+        for (tic = start; tic <= stop; tic += inc)
+        {
+                if ((tic < x0) || (tic > x1))
+                        continue;
+                ticpixel = CONV_TIME_TO_X(tic, x0, x1, width, offx);
+                PSDrawLine(fp, ticpixel, offy2 + 3, ticpixel, offy2 - 3);
+                sprintf(buf, "%g", tic);
+                PSDrawXAxisLabel(fp, buf, ticpixel, offy2, offx + width);
+        }
 }
 
 void PSDrawYAxis(FILE *fp, int offx, int offy, int offx2, int offy2, int width, int height, float y0, float y1)
 {
-	int ticpixel;
-	float inc, start, stop, tic;
-	char buf[80];
+        int ticpixel;
+        float inc, start, stop, tic;
+        char buf[80];
 
-	/*
-	** Draw Y axis
-	*/
-	PSDrawLine(fp, offx, offy2 + height, offx, offy2);
+        /*
+        ** Draw Y axis
+        */
+        PSDrawLine(fp, offx, offy2 + height, offx, offy2);
 
-	/*
-	** Compute where to put the tick marks.
-	** The result of this computation will be a {start, inc, stop}
-	*/
-	if (y0 >= y1)
-		return;
-	inc = make_tics(y0, y1);
-	start = inc * floor(y0/inc);
-	stop = inc * ceil(y1/inc);
-	while (start < y0) start += inc;
-	while (stop > y1) stop -= inc;
+        /*
+        ** Compute where to put the tick marks.
+        ** The result of this computation will be a {start, inc, stop}
+        */
+        if (y0 >= y1)
+                return;
+        inc = make_tics(y0, y1);
+        start = inc * floor(y0/inc);
+        stop = inc * ceil(y1/inc);
+        while (start < y0) start += inc;
+        while (stop > y1) stop -= inc;
 
-	/*
-	** Convert {start, stop, inc} from value to pixel coordinates.
-	** Then draw the tick mark and the tick label.
-	*/
-	for (tic = start; tic <= stop; tic += inc)
-	{
-		if ((tic < y0) || (tic > y1))
-			continue;
-		ticpixel = CONV_VALUE_TO_Y(tic, y0, y1, height, offy, offy2);
-		PSDrawLine(fp, offx - 3, ticpixel, offx + 3, ticpixel);
-		sprintf(buf, "%g", tic);
-		PSDrawYAxisLabel(fp, buf, offx, ticpixel);
-	}
+        /*
+        ** Convert {start, stop, inc} from value to pixel coordinates.
+        ** Then draw the tick mark and the tick label.
+        */
+        for (tic = start; tic <= stop; tic += inc)
+        {
+                if ((tic < y0) || (tic > y1))
+                        continue;
+                ticpixel = CONV_VALUE_TO_Y(tic, y0, y1, height, offy, offy2);
+                PSDrawLine(fp, offx - 3, ticpixel, offx + 3, ticpixel);
+                sprintf(buf, "%g", tic);
+                PSDrawYAxisLabel(fp, buf, offx, ticpixel);
+        }
 }
 
 static double dbl_raise(double x, int y)
 {
-	double val;
-	int i;
+        double val;
+        int i;
 
-	val = 1.0;
-	for (i=0; i < abs(y); i++)
-		val *= x;
-	if (y < 0)
-		return (1.0/val);
-	return(val);
+        val = 1.0;
+        for (i=0; i < abs(y); i++)
+                val *= x;
+        if (y < 0)
+                return (1.0/val);
+        return(val);
 }
 
 static double make_tics(double tmin, double tmax)
 {
-	double xr,xnorm,tics,tic,l10;
+        double xr,xnorm,tics,tic,l10;
 
-	xr = fabs(tmin-tmax);
-	l10 = log10(xr);
+        xr = fabs(tmin-tmax);
+        l10 = log10(xr);
 
-	xnorm = pow(10.0,l10-(double)((l10 >= 0.0 ) ? (int)l10 : ((int)l10-1)));
-	if (xnorm <= 3)
-		tics = 0.3;
-	else if (xnorm <= 5)
-		tics = 0.5;
-	else tics = 1.0;
+        xnorm = pow(10.0,l10-(double)((l10 >= 0.0 ) ? (int)l10 : ((int)l10-1)));
+        if (xnorm <= 3)
+                tics = 0.3;
+        else if (xnorm <= 5)
+                tics = 0.5;
+        else tics = 1.0;
 
-	tic = tics * dbl_raise(10.0,(l10 >= 0.0 ) ? (int)l10 : ((int)l10-1));
-	return(tic);
+        tic = tics * dbl_raise(10.0,(l10 >= 0.0 ) ? (int)l10 : ((int)l10-1));
+        return(tic);
 }
 
 void PSDrawXGrid(FILE *fp, int offx, int offy, int offx2, int offy2, int width, int height, float x0, float x1)
 {
-	int x;
-	int ylim = height / 20;
-	float x_axis_fstep = (0.2 * ((float)width / ((x1 - x0) / 1000.0)));
-	int x_axis_step = x_axis_fstep;
-	float x_resid = x_axis_fstep - x_axis_step;
-	float resid = 0.0;
+        int x;
+        int ylim = height / 20;
+        float x_axis_fstep = (0.2 * ((float)width / ((x1 - x0) / 1000.0)));
+        int x_axis_step = x_axis_fstep;
+        float x_resid = x_axis_fstep - x_axis_step;
+        float resid = 0.0;
 
-	if (x_axis_step > 1)
-	{
-		for (x=0; x<width; x+=x_axis_step)
-		{
-			resid += x_resid;
-			if (resid >= 1.0)
-			{
-				x++;
-				resid -= 1.0;
-			}
-			PSDrawLine(fp, offx + x, offy2 + height - ylim/5, offx + x, offy2 + height - ylim);
-		}
-	}
+        if (x_axis_step > 1)
+        {
+                for (x=0; x<width; x+=x_axis_step)
+                {
+                        resid += x_resid;
+                        if (resid >= 1.0)
+                        {
+                                x++;
+                                resid -= 1.0;
+                        }
+                        PSDrawLine(fp, offx + x, offy2 + height - ylim/5, offx + x, offy2 + height - ylim);
+                }
+        }
 }
 
 void PSDrawYGrid(FILE *fp, int offx, int offy, int offx2, int offy2, int width, int height)
 {
-	int y;
-	float y_axis_fstep = ((float)height) / 10.0;
-	int y_axis_step = y_axis_fstep;
-	float y_resid = y_axis_fstep - y_axis_step;
-	float resid = 0.0;
+        int y;
+        float y_axis_fstep = ((float)height) / 10.0;
+        int y_axis_step = y_axis_fstep;
+        float y_resid = y_axis_fstep - y_axis_step;
+        float resid = 0.0;
 
-	for (y=height - 1; y>=0; y -= y_axis_step)
-	{
-		resid += y_resid;
-		if (resid >= 1.0)
-		{
-			y--;
-			resid -= 1.0;
-		}
-		PSDrawLine(fp, offx, offy2 + height - y, offx + width, offy2 + height - y);
-	}
+        for (y=height - 1; y>=0; y -= y_axis_step)
+        {
+                resid += y_resid;
+                if (resid >= 1.0)
+                {
+                        y--;
+                        resid -= 1.0;
+                }
+                PSDrawLine(fp, offx, offy2 + height - y, offx + width, offy2 + height - y);
+        }
 }
 
 void PSInit_parent(FILE *fp)
 {
-	fprintf(fp, parentprolog);
+        fputs(parentprolog, fp);
 }
 
 void PSIncludeEPSF(FILE *fp, char *filename, int xpos, int ypos, int width, int height)
 {
-	/*
-	** Set up our coordinate system
-	*/
-	fprintf(fp, "BeginEPSF\n");
-	fprintf(fp, "%d %d translate\n", xpos, ypos);
-	fprintf(fp, "0 rotate\n");
-	fprintf(fp, "1 dup scale\n");
-	fprintf(fp, "-18 -18 translate\n");
+        /*
+        ** Set up our coordinate system
+        */
+        fprintf(fp, "BeginEPSF\n");
+        fprintf(fp, "%d %d translate\n", xpos, ypos);
+        fprintf(fp, "0 rotate\n");
+        fprintf(fp, "1 dup scale\n");
+        fprintf(fp, "-18 -18 translate\n");
 
-	/*
-	** Set up a clipping rectangle
-	*/
-	/*
-	fprintf(fp, "0 0 moveto\n");
-	fprintf(fp, "%d 0 lineto\n", width);
-	fprintf(fp, "%d %d lineto\n", width, height);
-	fprintf(fp, "0 %d lineto\n", height);
-	fprintf(fp, "closepath clip\n");
-	fprintf(fp, "newpath\n");
-	*/
-	fprintf(fp, "%%BeginDocument: %s\n", filename);
+        /*
+        ** Set up a clipping rectangle
+        */
+        /*
+        fprintf(fp, "0 0 moveto\n");
+        fprintf(fp, "%d 0 lineto\n", width);
+        fprintf(fp, "%d %d lineto\n", width, height);
+        fprintf(fp, "0 %d lineto\n", height);
+        fprintf(fp, "closepath clip\n");
+        fprintf(fp, "newpath\n");
+        */
+        fprintf(fp, "%%BeginDocument: %s\n", filename);
 }
 
 void PSFinishEPSF(FILE *fp)
 {
-	fprintf(fp, "%%EndDocument\n");
-	fprintf(fp, "EndEPSF\n");
+        fprintf(fp, "%%EndDocument\n");
+        fprintf(fp, "EndEPSF\n");
 }
 
 void PSSet_Pref(char *property, char *value)
 {
-	if (!strcmp(property, "DefDotType"))
-	{
-		if (!strcasecmp(value, "dot"))
-			pref_dottype = 0;
-		if (!strcasecmp(value, "halfdash"))
-			pref_dottype = 1;
-		if (!strcasecmp(value, "dash"))
-			pref_dottype = 2;
-	}
-	else if (!strcmp(property, "DashHeight"))
-	{
-		if (sscanf(value, "%f", &pref_dashheight) != 1)
-			pref_dashheight = 1.0;
-	}
+        if (!strcmp(property, "DefDotType"))
+        {
+                if (!strcasecmp(value, "dot"))
+                        pref_dottype = 0;
+                if (!strcasecmp(value, "halfdash"))
+                        pref_dottype = 1;
+                if (!strcasecmp(value, "dash"))
+                        pref_dottype = 2;
+        }
+        else if (!strcmp(property, "DashHeight"))
+        {
+                if (sscanf(value, "%f", &pref_dashheight) != 1)
+                        pref_dashheight = 1.0;
+        }
 }
-
