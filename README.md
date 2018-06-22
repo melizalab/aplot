@@ -42,24 +42,18 @@ Aplot can also play sampled data through soundcards, mixing multiple channels
 into mono or stereo channels, and marking on its plots the samples being played
 in real-time.
 
-### Requirements
-
-aplot requires libdataio, libjpeg, HDF5 version 8 or later, Motif (or lesstif), and a whole host of X11 libraries. It uses scons for compilation. To install on debian:
-
-    apt-get install libmotif-dev libxp-dev libxmu-dev libxft-dev libfftw3-dev libhdf5-dev scons
-
 ### Installation
 
 To install prerequisites on Debian 8:
 
-    sudo apt-get install libmotif-dev libxp-dev libxmu-dev libxft-dev libfftw3-dev libhdf5-dev libfreetype6-dev libfontconfig1-dev scons
+    # apt-get install libmotif-dev libxmu-dev libxft-dev libfftw3-dev libhdf5-dev libfreetype6-dev libfontconfig1-dev scons
 
 You'll also need to compile and install [melizalab/libdataio](https://github.com/melizalab/libdataio)
 
 To compile and install aplot:
 
-    scons
-    scons install
+    $ scons
+    # scons install
 
 ### Author
 

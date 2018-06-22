@@ -7,7 +7,7 @@ penv.Append(LIBS=["Xm"])
 # , "Xp", "Xmu", "Xt", "SM", "ICE", "Xext", "Xft", "fontconfig", "Xrender",
 #                   "freetype", "expat", "X11", "xcb", "Xau", "Xdmcp",
 #                   "sono", "dataio"])
-penv.ParseConfig("pkg-config xp xmu xt sm ice xext xft fontconfig xrender freetype2 xcb xau xdmcp --cflags --libs")
+penv.ParseConfig("pkg-config xmu xt sm ice xext xft fontconfig xrender freetype2 xcb xau xdmcp --cflags --libs")
 penv.ParseConfig("pkg-config hdf5 libjpeg --cflags --libs")
 penv.Append(LIBS=["sono", "dataio"])
 
