@@ -92,3 +92,4 @@ srcs = (
 )
 
 prog = env.Program("aplot", srcs)
+env.Alias("install", env.Install(os.path.join(env["PREFIX"], "bin"), prog))

@@ -48,6 +48,10 @@ To install prerequisites on Debian 12:
 
     # apt-get install libmotif-dev libxmu-dev libxft-dev libfftw3-dev libjpeg-dev libhdf5-dev libfreetype6-dev libfontconfig1-dev scons
 
+To compile and install:
+
+    scons
+	scons install
 
 ### Author
 
