@@ -44,16 +44,10 @@ in real-time.
 
 ### Installation
 
-To install prerequisites on Debian 8:
+To install prerequisites on Debian 12:
 
-    # apt-get install libmotif-dev libxmu-dev libxft-dev libfftw3-dev libhdf5-dev libfreetype6-dev libfontconfig1-dev scons
+    # apt-get install libmotif-dev libxmu-dev libxft-dev libfftw3-dev libjpeg-dev libhdf5-dev libfreetype6-dev libfontconfig1-dev scons
 
-You'll also need to compile and install [melizalab/libdataio](https://github.com/melizalab/libdataio)
-
-To compile and install aplot:
-
-    $ scons
-    # scons install
 
 ### Author
 
