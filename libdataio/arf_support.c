@@ -53,8 +53,8 @@ static herr_t
 hdf5_cb_count_datasets(hid_t id, const char * name, const H5L_info_t *link_info, void *data)
 {
         // Does link point to a dataset?
-        H5O_info_t object_info;
-        H5Oget_info_by_name(id, name, &object_info, H5P_DEFAULT);
+        H5O_info1_t object_info;
+        H5Oget_info_by_name1(id, name, &object_info, H5P_DEFAULT);
         if (object_info.type!=H5O_TYPE_DATASET)
                 return 0;
 
@@ -175,8 +175,8 @@ hdf5_cb_read_dataset(hid_t id, const char * name, const H5L_info_t *link_info, v
         int ret=0;
 
         // Does link point to a dataset?
-        H5O_info_t object_info;
-        H5Oget_info_by_name(id, name, &object_info, H5P_DEFAULT);
+        H5O_info1_t object_info;
+        H5Oget_info_by_name1(id, name, &object_info, H5P_DEFAULT);
         if (object_info.type!=H5O_TYPE_DATASET)
                 return 0;
 
